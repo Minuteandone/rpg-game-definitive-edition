@@ -253,18 +253,25 @@ export function playerUseAbility(state, abilityId) {
   if (ability.targetType === 'single-enemy' || ability.targetType === 'all-enemies') {
     // Damage ability targeting enemy
     if (ability.power > 0) {
-      const atkStat = state.player.atk;
-      const defStat = state.enemy.def;
-      const abilityPower = ability.power;
-      const raw = Math.floor(atkStat * abilityPower) - defStat;
-      const damage = Math.max(1, raw);
+      const abilityElement = ability.element ?? 'physical';
+      const { damage, critical } = calculateDamage({
+        attackerAtk: state.player.atk,
+        targetDef: state.enemy.def,
+        targetDefending: state.enemy.defending,
+        element: abilityElement,
+        targetElement: state.enemy.element ?? null,
+        rngValue,
+        abilityPower: ability.power,
+      });
 
       const enemyHp = clamp(state.enemy.hp - damage, 0, state.enemy.maxHp);
       state = {
         ...state,
         enemy: { ...state.enemy, hp: enemyHp },
       };
-      state = pushLog(state, `${state.enemy.name} takes ${damage} ${ability.element} damage!`);
+      let msg = `${state.enemy.name} takes ${damage} ${abilityElement} damage!`;
+      if (critical) msg += ' Critical hit!';
+      state = pushLog(state, msg);
     }
 
     // Apply status effect to enemy
