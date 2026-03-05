@@ -53,18 +53,20 @@ If you land a change that substantially alters architecture or invariants, **upd
 #### 2.2.1 Browser entry + legacy glue
 
 - `src/main.js`
-  - Browser bootstrap. Historically owned the entire game loop and a simple 1v1 combat slice via `src/combat.js`.
-  - **Current role:** thin shell that will increasingly delegate to the engine + integration layer for:
-    - Starting a new game (`startNewGame` from `src/game-integration.js`)
-    - Driving exploration and encounters
-    - Routing UI actions (attack/defend/items, dialog choices, etc.)
-  - Still contains some **legacy state/dispatch wiring**. New features should prefer the engine + integration abstractions where possible.
+  - Browser entrypoint that owns the legacy single-character state machine with phases like `class-select`, `exploration`, `player-turn`, `enemy-turn`, `victory`, `battle-summary`, `level-up`, `defeat`, `inventory`, `quests`, and `dialog`.
+  - Maintains the top-level state object (player, enemy, world, questState, inventoryState, dialogState, pendingLevelUps, battleSummary, etc.) and calls `render(state, dispatch)` on every state change.
+  - Wires in quest and NPC systems: initializes `questState` with `initQuestState` on class select, calls `onRoomEnter` when moving between rooms, exposes `VIEW_QUESTS` / `CLOSE_QUESTS` / `ACCEPT_QUEST` actions, and supports `TALK_TO_NPC` / `DIALOG_NEXT` / `DIALOG_CLOSE` to drive `npc-dialog.js`.
+  - Integrates the legacy combat slice from `combat.js`, including `playerAttack` / `playerDefend` / `playerUsePotion` / `playerUseAbility` and `enemyAct`, and handles random encounters with `nextRng` and `startNewEncounter`.
+  - Implements the post-battle flow: detecting level-ups with `checkLevelUps` when a victory is reached, creating `pendingLevelUps` and `levelUpState`, transitioning into a dedicated `'battle-summary'` phase via `createBattleSummary`, and then returning to exploration via `CONTINUE_AFTER_BATTLE` and `LEVEL_UP_CONTINUE`.
+  - `engine.js` + `game-integration.js` still exist as a higher-level engine path used by `tests/integration-test.mjs`, but the browser UI currently uses the legacy `main.js` path; fully wiring the engine/integration path remains on the roadmap.
 
 - `src/render.js`
   - DOM renderer for HUD, status panels, action buttons, and the log.
   - Intended to stay **presentation‑only**:
     - Reads a high‑level view model (from `getGameStatus()` in `src/game-integration.js`).
     - Emits UI events that main/engine handle.
+  - Renders ability buttons based on `getAbilityDisplayInfo` from `src/combat/abilities.js` during combat phases.
+  - Renders a dedicated `'battle-summary'` screen for the battle-summary phase, showing XP, gold, loot, and level-up lines with a Continue button that dispatches `CONTINUE_AFTER_BATTLE`.
 
 #### 2.2.2 State & engine
 
@@ -146,7 +148,7 @@ These modules are validated by `tests/character-test.mjs`.
 #### 2.2.6 Combat system
 
 - `src/combat/abilities.js`
-  - Definitions of class abilities with `id`, `name`, `description`, `mpCost`, power, element, target type, and optional status effects.
+  - Defines per-class active abilities with metadata (`id`, `name`, `description`, `mpCost`, power, element, target, attached status effects) and exposes `getAbilityDisplayInfo` for UI display.
 
 - `src/combat/damage-calc.js`
   - Element tables and damage / healing formulas.
@@ -165,9 +167,9 @@ These modules are validated by `tests/character-test.mjs`.
   - Public combat API re‑exporting the above.
 
 - `src/combat.js`
-  - **Legacy 1v1 combat** used by the very first vertical slice. Still present and tested for backwards compatibility but gradually superseded by `src/combat/*`.
+  - **Legacy 1v1 combat** used by the very first vertical slice. Still present and tested for backwards compatibility but gradually superseded by `src/combat/*`. Uses the shared `calculateDamage` from `src/combat/damage-calc.js` for both basic attacks and abilities so elements, variance, defending, and crits are applied consistently.
 
-Behaviour is covered by `tests/combat-test.mjs`.
+Behaviour is covered by `tests/combat-test.mjs`, `tests/combat-actions-test.mjs`, and `tests/combat-abilities-test.mjs` across both the modular engine and the legacy `src/combat.js` path.
 
 #### 2.2.7 Enemies / encounters
 
@@ -223,6 +225,15 @@ Covered by `tests/items-test.mjs`.
 - `src/data/npcs.js` — NPC definitions and hooks into dialogs/quests.
 
 All validated by `tests/story-test.mjs`.
+
+#### 2.2.12 Battle summary
+
+- `src/battle-summary.js`
+  - Exports `createBattleSummary(state)` and `formatBattleSummary(summary)`.
+  - `createBattleSummary` pulls `xpGained`, `goldGained`, enemy name, `lootedItems`, and `pendingLevelUps` from a victory-phase state and returns a normalized summary object with copies of arrays.
+  - `formatBattleSummary` turns that into display-ready strings (title, `enemyLine`, `xpLine`, `goldLine`, `lootLines`, `levelUpLines`, `hasLoot`, `hasLevelUps`).
+  - `main.js` calls `createBattleSummary` when transitioning into victory, changing the phase to `'battle-summary'` and storing the summary on `state.battleSummary`; `render.js` reads that summary in the `'battle-summary'` phase to render the Battle Won panel and Continue button.
+  - Validated by `tests/battle-summary-test.mjs` for module invariants and the victory-state → summary → display pipeline.
 
 ---
 
@@ -285,16 +296,23 @@ We use **Node‑based tests** to keep logic verifiable without a browser. The ca
   "test:integration": "node ./tests/integration-test.mjs",
   "test:exploration-loop": "node tests/exploration-loop-test.mjs",
   "test:combat-actions": "node ./tests/combat-actions-test.mjs",
+  "test:combat-abilities": "node --experimental-vm-modules tests/combat-abilities-test.mjs",
   "test:exploration": "node ./tests/exploration-quests-test.mjs",
   "test:input": "node ./tests/input-test.mjs",
   "test:move-dispatch": "node ./tests/move-dispatch-test.mjs",
   "test:ui": "node ./tests/ui-test.mjs",
-  "test:all": "node ./tests/ci-smoke.mjs && node ./tests/combat-test.mjs && node ./tests/character-test.mjs && node ./tests/items-test.mjs && node ./tests/map-test.mjs && node ./tests/enemies-test.mjs && node ./tests/story-test.mjs && node ./tests/engine-test.mjs && node ./tests/state-test.mjs && node ./tests/integration-test.mjs && npm run test:exploration-loop && node ./tests/combat-actions-test.mjs && npm run test:exploration && npm run test:input && npm run test:move-dispatch && npm run test:ui && npm run test:inventory-mgmt && npm run test:quest-integration && npm run test:inventory-wiring && npm run test:storage && npm run test:level-up",
   "test:quest-integration": "node ./tests/quest-integration-test.mjs",
   "test:inventory-mgmt": "node ./tests/inventory-management-test.mjs",
   "test:inventory-wiring": "node ./tests/inventory-wiring-test.mjs",
   "test:storage": "node ./tests/storage-test.mjs",
-  "test:level-up": "node ./tests/level-up-test.mjs"
+  "test:level-up": "node ./tests/level-up-test.mjs",
+  "test:quest-log-ui": "node ./tests/quest-log-ui-test.mjs",
+  "test:npc-dialog": "node ./tests/npc-dialog-test.mjs",
+  "test:battle-summary": "node ./tests/battle-summary-test.mjs",
+  "test:combat-items": "node tests/combat-items-test.mjs",
+  "test:all": "node ./scripts/run-tests.mjs",
+  "test:all:list": "node ./scripts/run-tests.mjs --list",
+  "test:all:quiet": "node ./scripts/run-tests.mjs --quiet"
 }
 ```
 
@@ -397,11 +415,27 @@ We use **Node‑based tests** to keep logic verifiable without a browser. The ca
   - Level-up system in `src/level-up.js` (detection, stat growth, and XP thresholds).
   - Wiring in `main.js` and `render.js` for pending level-ups, level-up screens, and anti-Easter-egg checks.
 
+- `tests/quest-log-ui-test.mjs`
+  - Covers `VIEW_QUESTS`, `CLOSE_QUESTS`, and `ACCEPT_QUEST` action wiring in `main.js`; verifies phase transitions into and out of the `quests` phase, integration with `quest-integration.js` (`getActiveQuestsSummary`, `getAvailableQuestsInRoom`, `onRoomEnter`), `ROOM_ID_MAP` coverage, render-time safety when `questState` is missing, and ensures quest names/IDs are safe for UI use.
+
+- `tests/npc-dialog-test.mjs`
+  - Validates `npc-dialog.js` runtime behaviour, including `ROOM_NPCS` covering all 9 rooms, `DIALOG_LINES` structure, `getNPCsInRoom` returning copies, `createDialogState`, `getCurrentDialogLine`, `advanceDialog`, and `getDialogProgress`; ensures NPC/dialog wiring remains immutable and robust.
+
+- `tests/combat-abilities-test.mjs`
+  - Exercises the combat abilities system end-to-end, including ability definitions, MP costs, damage and healing behaviour, status effects (stun, poison, buffs, debuffs, regen), guards for wrong phase/wrong class/insufficient MP, and wiring between `state.js`, `combat.js`, and `src/combat/abilities.js`; also performs an anti-Easter-egg / anti-obfuscation scan over relevant combat and state files.
+
+- `tests/combat-items-test.mjs`
+  - Covers the combat item system in `src/combat.js` and related data in `src/data/items.js`: using consumables during combat (healing, mana restore, damage items, status cleanses), enforcing item counts, and keeping combat item effects aligned with non-combat `useItem` behaviour.
+
+- `tests/battle-summary-test.mjs`
+  - Validates `createBattleSummary` and `formatBattleSummary`, including defaulting behaviour when fields are missing, copying arrays instead of reusing references, formatting of loot and level-up lines, and the victory-state → summary → display pipeline; asserts compatibility with `initialStateWithClass` for plugging battle summaries into the existing victory flow.
+
 ### 5.2 CI workflows
 
 - **Default CI (`.github/workflows/ci.yml`)**
   - Runs on pushes to `main` and on all PRs.
   - Executes `npm run test:all` (the full suite) to catch missing files, regressions, and wiring/integration issues.
+  - The `test:all` entrypoint is implemented by `scripts/run-tests.mjs`, which auto-discovers `tests/ci-smoke.mjs` and all `tests/*-test.mjs`, runs them sequentially, and supports `--list`, `--quiet`, and `--match` flags for local development.
 
 - **JS syntax check (`.github/workflows/js-syntax.yml`)**
   - Runs on pushes to `main` and on PRs.
@@ -471,4 +505,3 @@ This is intentionally rough and will evolve.
 - **Ongoing**
   - Keep `tests/` and `package.json` scripts in sync with new modules.
   - Maintain this `docs/CONOPS.md` as the authoritative map of how the game is structured and how collaborators should work together.
-
