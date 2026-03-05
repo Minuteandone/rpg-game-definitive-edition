@@ -1,6 +1,7 @@
 import { initialState, initialStateWithClass, loadFromLocalStorage, saveToLocalStorage, pushLog } from './state.js';
 import { playerAttack, playerDefend, playerUsePotion, enemyAct, startNewEncounter } from './combat.js';
 import { render } from './render.js';
+import { keyToCardinalDirection } from './input.js';
 import { CLASS_DEFINITIONS } from './characters/classes.js';
 import { movePlayer, getCurrentRoom, getRoomExits } from './map.js';
 import { nextRng } from './combat.js';
@@ -186,3 +187,16 @@ function dispatch(action) {
 }
 
 render(state, dispatch);
+
+// Keyboard shortcuts: WASD/arrow keys to explore
+window.addEventListener('keydown', (event) => {
+  const target = event.target;
+  const tag = target?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) return;
+
+  const direction = keyToCardinalDirection(event.key);
+  if (!direction) return;
+
+  event.preventDefault();
+  dispatch({ type: 'EXPLORE', direction });
+});
