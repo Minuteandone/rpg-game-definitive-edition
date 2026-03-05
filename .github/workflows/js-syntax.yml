@@ -1,0 +1,26 @@
+name: js-syntax
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  js-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Syntax check (node --check)
+        run: |
+          set -euo pipefail
+          files=$(find src -type f -name '*.js' | sort)
+          echo "$files"
+          for f in $files; do
+            node --check "$f"
+          done
