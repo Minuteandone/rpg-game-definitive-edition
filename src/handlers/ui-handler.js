@@ -21,6 +21,14 @@ function getRoomDescription(worldState) {
 export function handleUIAction(state, action) {
   const type = action.type;
 
+  if (type === "TOGGLE_HELP") {
+    return { ...state, showHelp: !state.showHelp };
+  }
+
+  if (type === "CLOSE_HELP") {
+    return { ...state, showHelp: false };
+  }
+
   // Settings
   if (type === 'VIEW_SETTINGS') {
     if (state.phase === 'class-select') return null;
