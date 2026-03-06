@@ -148,12 +148,6 @@ function attachQuestRewardHandlers(dispatch) {
   }
 }
 
-export {
-  renderQuestRewardScreen,
-  renderQuestRewardActions,
-  attachQuestRewardHandlers
-};
-
 /**
  * Returns CSS styles for the quest reward screen.
  * @returns {string} CSS string
@@ -267,6 +261,7 @@ function getQuestRewardStyles() {
 }
 
 export {
+  renderQuestCompletionCard,
   renderQuestRewardScreen,
   renderQuestRewardActions,
   attachQuestRewardHandlers,

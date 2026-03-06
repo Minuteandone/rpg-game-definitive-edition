@@ -13,7 +13,7 @@ import { getMinimapStyles, renderMinimap } from './minimap.js';
 import { renderStatsPanel, getStatsPanelStyles } from './stats-display.js';
 import { renderSaveSlotsList, getSaveSlotsStyles } from './save-slots-ui.js';
 import { renderSettingsPanel, getSettingsStyles, attachSettingsHandlers } from './settings-ui.js';
-import { renderQuestRewardScreen, renderQuestRewardActions, attachQuestRewardHandlers } from './quest-rewards-ui.js';
+import { renderQuestRewardScreen, renderQuestRewardActions, attachQuestRewardHandlers, getQuestRewardStyles } from './quest-rewards-ui.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
