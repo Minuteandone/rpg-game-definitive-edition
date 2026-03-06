@@ -3,7 +3,7 @@
  * Part of Story/Dialog Module
  */
 
-const NPCS = {
+export const NPCS = {
   // Quest Givers
   village_elder: {
     id: 'village_elder',
@@ -358,7 +358,7 @@ const NPCS = {
 };
 
 // NPC type definitions for reference
-const NPC_TYPES = {
+export const NPC_TYPES = {
   QUEST_GIVER: 'Gives and tracks quests',
   MERCHANT: 'Buys and sells items',
   TRAINER: 'Teaches skills for gold',

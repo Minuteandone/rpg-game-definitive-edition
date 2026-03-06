@@ -3,7 +3,7 @@
  * Part of Story/Dialog Module
  */
 
-const QUESTS = {
+export const QUESTS = {
   // Main Quest Line
   main_quest_1: {
     id: 'main_quest_1',
