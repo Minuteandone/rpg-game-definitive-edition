@@ -245,7 +245,6 @@ export function render(state, dispatch) {
         <button id="btnCrafting">Crafting 🔨</button>
         <button id="btnHelp">Help ❓</button>
         <button id="btnTalents">Talents ⭐</button>
-        <button id="btnHelp">Help ❓</button>
       </div>
     `;
 
