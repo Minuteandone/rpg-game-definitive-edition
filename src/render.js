@@ -12,6 +12,7 @@ import { renderStatusEffectsRow, getStatusEffectStyles } from './status-effect-u
 import { getMinimapStyles, renderMinimap } from './minimap.js';
 import { renderStatsPanel, getStatsPanelStyles } from './stats-display.js';
 import { renderSaveSlotsList, getSaveSlotsStyles } from './save-slots-ui.js';
+import { renderSettingsPanel, getSettingsStyles, attachSettingsHandlers } from './settings-ui.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -203,6 +204,7 @@ export function render(state, dispatch) {
         <button id="btnQuests">Quests 📜</button>
         <button id="btnViewStats">Stats 📊</button>
         <button id="btnSaveSlots">Save/Load 💾</button>
+        <button id="btnSettings">Settings ⚙️</button>
       </div>
     `;
 
@@ -215,6 +217,7 @@ export function render(state, dispatch) {
     document.getElementById('btnQuests').onclick = () => dispatch({ type: 'VIEW_QUESTS' });
     document.getElementById('btnViewStats').onclick = () => dispatch({ type: 'VIEW_STATS' });
     document.getElementById('btnSaveSlots').onclick = () => dispatch({ type: 'SAVE_SLOTS' });
+    document.getElementById('btnSettings').onclick = () => dispatch({ type: 'VIEW_SETTINGS' });
 
     hud.querySelectorAll('.npc-talk-btn').forEach((btn) => {
       btn.onclick = () => dispatch({ type: 'TALK_TO_NPC', npcId: btn.dataset.npcid });
@@ -513,6 +516,35 @@ export function render(state, dispatch) {
   }
 
   // --- Save Slots Phase ---
+
+  // --- Settings Phase ---
+  if (state.phase === 'settings') {
+    const settings = state.settings || {};
+    hud.innerHTML = '<div class="row">' + renderSettingsPanel(settings) + '</div>';
+    actions.innerHTML = '';
+    
+    // Style injection
+    if (!document.getElementById('settings-styles')) {
+      const styleEl = document.createElement('style');
+      styleEl.id = 'settings-styles';
+      styleEl.textContent = getSettingsStyles();
+      document.head.appendChild(styleEl);
+    }
+    
+    // Attach handlers
+    attachSettingsHandlers(
+      settings,
+      (category, key, value) => dispatch({ type: 'UPDATE_SETTING', category, key, value }),
+      () => dispatch({ type: 'RESET_SETTINGS' })
+    );
+    
+    // Close button
+    const btnClose = document.getElementById('btnCloseSettings');
+    if (btnClose) btnClose.onclick = () => dispatch({ type: 'CLOSE_SETTINGS' });
+    
+    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
+    return;
+  }
   if (state.phase === 'save-slots') {
     const mode = state.saveSlotMode || 'save';
     const slots = state.saveSlots || [];
