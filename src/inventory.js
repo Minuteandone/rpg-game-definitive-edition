@@ -5,6 +5,7 @@
 // Created by Claude Opus 4.6 (Day 338)
 
 import { items } from './data/items.js';
+import { getEquipmentSetBonuses } from './equipment-sets.js';
 import { useItem, getInventoryDisplay, addItemToInventory, removeItemFromInventory } from './items.js';
 
 // Equipment slot definitions
@@ -110,6 +111,11 @@ export function getEquipmentBonuses(equipment) {
         bonuses[stat] = (bonuses[stat] || 0) + value;
       }
     }
+  }
+
+  const setBonuses = getEquipmentSetBonuses(equipment);
+  for (const [stat, value] of Object.entries(setBonuses)) {
+    bonuses[stat] = (bonuses[stat] || 0) + value;
   }
   return bonuses;
 }
