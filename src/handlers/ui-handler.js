@@ -9,6 +9,7 @@ import { getCurrentRoom, getRoomExits } from '../map.js';
 import { advanceDialog } from '../npc-dialog.js';
 import { loadSettings, updateSetting, resetSettings, saveSettings } from '../settings.js';
 import { createShopState, buyItem, sellItem } from '../shop.js';
+import { createCraftingState, craftItem } from '../crafting.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -235,6 +236,51 @@ export function handleUIAction(state, action) {
     return { ...rest, phase: returnPhase };
   }
 
+
+  // Crafting Actions
+  if (type === 'VIEW_CRAFTING') {
+    if (state.phase === 'class-select') return null;
+    if (!state.crafting) {
+      state = { ...state, crafting: createCraftingState() };
+    }
+    return {
+      ...state,
+      phase: 'crafting',
+      previousPhase: state.phase,
+      craftingUI: { category: 'all', selectedRecipe: null, message: null },
+    };
+  }
+
+  if (type === 'CLOSE_CRAFTING') {
+    if (state.phase !== 'crafting') return null;
+    const returnPhase = state.previousPhase || 'exploration';
+    return { ...state, phase: returnPhase, craftingUI: undefined };
+  }
+
+  if (type === 'CRAFTING_SET_CATEGORY') {
+    if (state.phase !== 'crafting') return null;
+    return {
+      ...state,
+      craftingUI: { ...state.craftingUI, category: action.category || 'all', selectedRecipe: null, message: null },
+    };
+  }
+
+  if (type === 'CRAFTING_SELECT_RECIPE') {
+    if (state.phase !== 'crafting') return null;
+    return {
+      ...state,
+      craftingUI: { ...state.craftingUI, selectedRecipe: action.recipeId || null, message: null },
+    };
+  }
+
+  if (type === 'CRAFT_ITEM') {
+    if (state.phase !== 'crafting' || !action.recipeId) return null;
+    const result = craftItem(state, action.recipeId);
+    return {
+      ...state,
+      craftingUI: { ...state.craftingUI, message: result.message },
+    };
+  }
 
   return null;
 }

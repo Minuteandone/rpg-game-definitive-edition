@@ -15,6 +15,7 @@ import { renderSaveSlotsList, getSaveSlotsStyles } from './save-slots-ui.js';
 import { renderSettingsPanel, getSettingsStyles, attachSettingsHandlers } from './settings-ui.js';
 import { renderQuestRewardScreen, renderQuestRewardActions, attachQuestRewardHandlers, getQuestRewardStyles } from './quest-rewards-ui.js';
 import { renderShopPanel, getShopStyles, attachShopHandlers } from './shop-ui.js';
+import { renderCraftingPanel, getCraftingStyles, attachCraftingHandlers } from './crafting-ui.js';
 import { hasShop } from './shop.js';
 
 function hpLine(entity) {
@@ -116,6 +117,13 @@ export function render(state, dispatch) {
     document.head.appendChild(statsPanelStyleEl);
   }
 
+  if (!document.getElementById('crafting-styles')) {
+    const craftingStyleEl = document.createElement('style');
+    craftingStyleEl.id = 'crafting-styles';
+    craftingStyleEl.textContent = getCraftingStyles();
+    document.head.appendChild(craftingStyleEl);
+  }
+
   // --- Class Select Phase ---
   if (state.phase === 'class-select') {
     const order = ['warrior', 'mage', 'rogue', 'cleric'];
@@ -208,6 +216,7 @@ export function render(state, dispatch) {
         <button id="btnViewStats">Stats 📊</button>
         <button id="btnSaveSlots">Save/Load 💾</button>
         <button id="btnSettings">Settings ⚙️</button>
+        <button id="btnCrafting">Crafting 🔨</button>
       </div>
     `;
 
@@ -221,6 +230,7 @@ export function render(state, dispatch) {
     document.getElementById('btnViewStats').onclick = () => dispatch({ type: 'VIEW_STATS' });
     document.getElementById('btnSaveSlots').onclick = () => dispatch({ type: 'SAVE_SLOTS' });
     document.getElementById('btnSettings').onclick = () => dispatch({ type: 'VIEW_SETTINGS' });
+    document.getElementById('btnCrafting').onclick = () => dispatch({ type: 'VIEW_CRAFTING' });
 
     hud.querySelectorAll('.npc-talk-btn').forEach((btn) => {
       btn.onclick = () => dispatch({ type: 'TALK_TO_NPC', npcId: btn.dataset.npcid });
@@ -809,6 +819,28 @@ export function render(state, dispatch) {
     });
 
     log.innerHTML = state.log.slice().reverse().map(line => `<div class="logLine">${esc(line)}</div>`).join('');
+    return;
+  }
+
+  if (state.phase === 'crafting') {
+    const craftingHtml = renderCraftingPanel(state, state.craftingUI || {});
+
+    hud.innerHTML = craftingHtml;
+
+    actions.innerHTML = `
+      <div class="buttons">
+        <button id="btnCloseCrafting">Close Crafting</button>
+      </div>
+    `;
+
+    attachCraftingHandlers(hud, dispatch);
+    document.getElementById('btnCloseCrafting').onclick = () => dispatch({ type: 'CLOSE_CRAFTING' });
+
+    log.innerHTML = state.log
+      .slice()
+      .reverse()
+      .map((line) => `<div class="logLine">${esc(line)}</div>`)
+      .join('');
     return;
   }
 

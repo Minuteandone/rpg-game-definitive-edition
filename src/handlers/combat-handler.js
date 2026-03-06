@@ -1,5 +1,7 @@
 import { playerAttack, playerDefend, playerUsePotion, playerUseAbility, playerUseItem, enemyAct } from '../combat.js';
 import { createGameStats, recordDamageDealt, recordTurnPlayed, recordItemUsed, recordAbilityUsed, recordDamageReceived } from '../game-stats.js';
+import { getCraftingMaterialDrops, lookupItem } from '../crafting.js';
+import { addItemToInventory } from '../items.js';
 
 /**
  * Handles combat-related actions dispatched during 'player-turn'.
@@ -22,6 +24,7 @@ export function handleCombatAction(state, action) {
     let gs = next.gameStats || createGameStats();
     if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
     gs = recordTurnPlayed(gs);
+    applyCraftingMaterialDrops(next);
     
     return { ...next, gameStats: gs };
   }
@@ -35,6 +38,7 @@ export function handleCombatAction(state, action) {
     let gs = next.gameStats || createGameStats();
     gs = recordItemUsed(gs, 'potion');
     gs = recordTurnPlayed(gs);
+    applyCraftingMaterialDrops(next);
     return { ...next, gameStats: gs };
   }
 
@@ -47,6 +51,7 @@ export function handleCombatAction(state, action) {
     gs = recordAbilityUsed(gs, action.abilityId);
     if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
     gs = recordTurnPlayed(gs);
+    applyCraftingMaterialDrops(next);
     
     return { ...next, gameStats: gs };
   }
@@ -56,6 +61,7 @@ export function handleCombatAction(state, action) {
     let gs = next.gameStats || createGameStats();
     gs = recordItemUsed(gs, action.itemId);
     gs = recordTurnPlayed(gs);
+    applyCraftingMaterialDrops(next);
     return { ...next, gameStats: gs };
   }
 
@@ -72,6 +78,7 @@ export function handleEnemyTurnLogic(state) {
     const hpBefore = state.player?.hp ?? 0;
     const next = enemyAct(state);
     const dmgReceived = Math.max(0, hpBefore - (next.player?.hp ?? hpBefore));
+    applyCraftingMaterialDrops(next);
     
     if (dmgReceived > 0) {
       const gs = recordDamageReceived(next.gameStats || createGameStats(), dmgReceived);
@@ -79,4 +86,27 @@ export function handleEnemyTurnLogic(state) {
     }
     
     return next;
+}
+
+function applyCraftingMaterialDrops(state) {
+  if (!state || state.phase !== 'victory') return;
+
+  const enemyLevel = state.enemy?.level ?? state.player?.level ?? 1;
+  const drops = getCraftingMaterialDrops(enemyLevel);
+  if (!drops || drops.length === 0) return;
+
+  const lootedItems = Array.isArray(state.lootedItems) ? [...state.lootedItems] : [];
+  let inventory = state.player?.inventory || {};
+
+  for (const drop of drops) {
+    const qty = drop.quantity ?? 1;
+    inventory = addItemToInventory(inventory, drop.materialId, qty);
+    const item = lookupItem(drop.materialId);
+    const name = item?.name || drop.materialId;
+    const label = qty > 1 ? `${name} x${qty}` : name;
+    lootedItems.push({ id: drop.materialId, name: label });
+  }
+
+  state.player = { ...state.player, inventory };
+  state.lootedItems = lootedItems;
 }
