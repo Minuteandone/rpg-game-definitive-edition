@@ -10,6 +10,7 @@ import { getAbilityDisplayInfo } from './combat/abilities.js';
 import { items as itemsData } from './data/items.js';
 import { renderStatusEffectsRow, getStatusEffectStyles } from './status-effect-ui.js';
 import { getMinimapStyles, renderMinimap } from './minimap.js';
+import { renderStatsPanel, getStatsPanelStyles } from './stats-display.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -103,6 +104,13 @@ export function render(state, dispatch) {
     document.head.appendChild(minimapStyleEl);
   }
 
+  if (!document.getElementById('stats-panel-styles')) {
+    const statsPanelStyleEl = document.createElement('style');
+    statsPanelStyleEl.id = 'stats-panel-styles';
+    statsPanelStyleEl.textContent = getStatsPanelStyles();
+    document.head.appendChild(statsPanelStyleEl);
+  }
+
   // --- Class Select Phase ---
   if (state.phase === 'class-select') {
     const order = ['warrior', 'mage', 'rogue', 'cleric'];
@@ -192,6 +200,7 @@ export function render(state, dispatch) {
         <button id="btnSeek">Seek Battle</button>
         <button id="btnInventory">Inventory</button>
         <button id="btnQuests">Quests 📜</button>
+        <button id="btnViewStats">Stats 📊</button>
         <button id="btnSave">Save</button>
         <button id="btnLoad">Load</button>
       </div>
@@ -204,6 +213,7 @@ export function render(state, dispatch) {
     document.getElementById('btnSeek').onclick = () => dispatch({ type: 'SEEK_ENCOUNTER' });
     document.getElementById('btnInventory').onclick = () => dispatch({ type: 'VIEW_INVENTORY' });
     document.getElementById('btnQuests').onclick = () => dispatch({ type: 'VIEW_QUESTS' });
+    document.getElementById('btnViewStats').onclick = () => dispatch({ type: 'VIEW_STATS' });
     document.getElementById('btnSave').onclick = () => dispatch({ type: 'SAVE' });
     document.getElementById('btnLoad').onclick = () => dispatch({ type: 'LOAD' });
 
@@ -468,6 +478,7 @@ export function render(state, dispatch) {
             <div>Slain by</div><div><b>${esc(state.enemy?.name ?? 'Unknown')}</b></div>
           </div>
         </div>
+        ${renderStatsPanel(state.gameStats ?? {}, { title: 'Run Statistics' })}
       </div>
     `;
 
@@ -486,6 +497,19 @@ export function render(state, dispatch) {
       .reverse()
       .map((line) => `<div class="logLine">${esc(line)}</div>`)
       .join('');
+    return;
+  }
+
+  // --- Stats Phase ---
+  if (state.phase === 'stats') {
+    hud.innerHTML = `
+      <div class="row">
+        ${renderStatsPanel(state.gameStats ?? {}, { title: 'Adventure Statistics' })}
+      </div>
+    `;
+    actions.innerHTML = '<div class="buttons"><button id="btnCloseStats">Close 📊</button></div>';
+    document.getElementById('btnCloseStats').onclick = () => dispatch({ type: 'CLOSE_STATS' });
+    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
     return;
   }
 

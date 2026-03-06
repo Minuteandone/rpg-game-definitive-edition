@@ -12,7 +12,7 @@ import { getNPCsInRoom, createDialogState, advanceDialog } from './npc-dialog.js
 import { initQuestState, acceptQuest, onRoomEnter, getAvailableQuestsInRoom, getActiveQuestsSummary } from './quest-integration.js';
 import { createBattleSummary } from './battle-summary.js';
 import { initVisitedRooms, markRoomVisited } from './minimap.js';
-import { createGameStats, recordEnemyDefeated, recordDamageDealt, recordDamageReceived, recordItemUsed, recordAbilityUsed, recordGoldEarned, recordXPEarned, recordBattleWon, recordBattleFled, recordTurnPlayed } from './game-stats.js';
+import { createGameStats, recordEnemyDefeated, recordDamageDealt, recordDamageReceived, recordItemUsed, recordAbilityUsed, recordGoldEarned, recordXPEarned, recordBattleWon, recordBattleFled, recordTurnPlayed, getStatsSummary } from './game-stats.js';
 
 const ENCOUNTER_RATE = 0.3; // 30% chance per move
 const ROOM_ID_MAP = [['nw', 'n', 'ne'], ['w', 'center', 'e'], ['sw', 's', 'se']];
@@ -386,6 +386,16 @@ function dispatch(action) {
 
   if (type === 'CLOSE_QUESTS') {
     if (state.phase !== 'quests') return;
+    return setState({ ...state, phase: state.previousPhase || 'exploration' });
+  }
+
+  if (type === 'VIEW_STATS') {
+    if (state.phase === 'class-select') return;
+    return setState({ ...state, phase: 'stats', previousPhase: state.phase });
+  }
+
+  if (type === 'CLOSE_STATS') {
+    if (state.phase !== 'stats') return;
     return setState({ ...state, phase: state.previousPhase || 'exploration' });
   }
 
