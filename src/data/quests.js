@@ -302,6 +302,240 @@ export const QUESTS = {
     prerequisites: []
   },
 
+  // The Missing Merchant
+  side_missing_merchant: {
+    id: 'side_missing_merchant',
+    name: 'The Missing Merchant',
+    description: 'A merchant went missing on the north road. The innkeeper is worried and asks you to investigate.',
+    type: 'SIDE',
+    level: 2,
+    stages: [
+      {
+        id: 'talk_innkeeper',
+        name: 'Ask the Innkeeper',
+        description: 'Speak with the innkeeper about the missing merchant.',
+        objectives: [
+          {
+            id: 'talk_to_innkeeper',
+            type: 'TALK',
+            description: 'Speak with Innkeeper Marta',
+            npcId: 'innkeeper_mira',
+            required: true
+          }
+        ],
+        nextStage: 'search_road'
+      },
+      {
+        id: 'search_road',
+        name: 'Search the North Road',
+        description: 'Explore the north road where the merchant was last seen.',
+        objectives: [
+          {
+            id: 'explore_north_road',
+            type: 'EXPLORE',
+            description: 'Search the north road',
+            locationId: 'north_road',
+            required: true
+          }
+        ],
+        nextStage: 'defeat_wolves'
+      },
+      {
+        id: 'defeat_wolves',
+        name: 'Defeat the Wolves',
+        description: 'Wolves have been prowling the road. Defeat them to find the merchant.',
+        objectives: [
+          {
+            id: 'kill_wolves',
+            type: 'KILL',
+            description: 'Defeat wolves on the north road',
+            enemyType: 'wolf',
+            count: 2,
+            current: 0,
+            required: true
+          }
+        ],
+        nextStage: 'return_to_innkeeper'
+      },
+      {
+        id: 'return_to_innkeeper',
+        name: 'Return to the Innkeeper',
+        description: 'Report back to Innkeeper Marta with news of the merchant.',
+        objectives: [
+          {
+            id: 'report_to_innkeeper',
+            type: 'TALK',
+            description: 'Tell Innkeeper Marta what you found',
+            npcId: 'innkeeper_mira',
+            required: true
+          }
+        ],
+        nextStage: null
+      }
+    ],
+    rewards: {
+      gold: 50,
+      experience: 75,
+      items: []
+    },
+    prerequisites: []
+  },
+
+  // The Lost Cartographer
+  side_lost_cartographer: {
+    id: 'side_lost_cartographer',
+    name: 'The Lost Cartographer',
+    description: 'A mapmaker has lost his journal while exploring the wilds. Help him recover it by searching key locations.',
+    type: 'SIDE',
+    level: 1,
+    stages: [
+      {
+        id: 'meet_cartographer',
+        name: 'Meet the Cartographer',
+        description: 'Speak with the mapmaker at the village square.',
+        objectives: [
+          {
+            id: 'talk_cartographer',
+            type: 'TALK',
+            description: 'Speak with Cartographer Olen',
+            npcId: 'village_elder',
+            required: true
+          }
+        ],
+        nextStage: 'search_zones'
+      },
+      {
+        id: 'search_zones',
+        name: 'Search the Wilds',
+        description: 'Explore different regions to find the lost journal.',
+        objectives: [
+          {
+            id: 'explore_west',
+            type: 'EXPLORE',
+            description: 'Search the western region',
+            locationId: 'w',
+            required: true
+          },
+          {
+            id: 'explore_south',
+            type: 'EXPLORE',
+            description: 'Search the southern region',
+            locationId: 's',
+            required: true
+          },
+          {
+            id: 'explore_east',
+            type: 'EXPLORE',
+            description: 'Search the eastern region',
+            locationId: 'e',
+            required: true
+          }
+        ],
+        nextStage: 'return_journal'
+      },
+      {
+        id: 'return_journal',
+        name: 'Return the Journal',
+        description: 'Bring the recovered journal back to Olen.',
+        objectives: [
+          {
+            id: 'return_to_olen',
+            type: 'TALK',
+            description: 'Return the journal to Cartographer Olen',
+            npcId: 'village_elder',
+            required: true
+          }
+        ],
+        nextStage: null
+      }
+    ],
+    rewards: {
+      gold: 30,
+      experience: 50,
+      items: ['ether']
+    },
+    prerequisites: []
+  },
+
+  // The Ancient Tome
+  side_ancient_tome: {
+    id: 'side_ancient_tome',
+    name: 'The Ancient Tome',
+    description: 'The hermit sage has heard of an ancient tome hidden in the ruins. He asks you to retrieve it from the dark cultist guarding it.',
+    type: 'SIDE',
+    level: 3,
+    stages: [
+      {
+        id: 'speak_with_sage',
+        name: 'Speak with the Sage',
+        description: 'Visit the hermit sage and learn about the ancient tome.',
+        objectives: [
+          {
+            id: 'talk_hermit_sage',
+            type: 'TALK',
+            description: 'Speak with the Hermit Sage',
+            npcId: 'alchemist_pim',
+            required: true
+          }
+        ],
+        nextStage: 'find_ruins'
+      },
+      {
+        id: 'find_ruins',
+        name: 'Find the Ruins',
+        description: 'Search for the ancient ruins where the tome is hidden.',
+        objectives: [
+          {
+            id: 'explore_ruins',
+            type: 'EXPLORE',
+            description: 'Explore the ancient ruins',
+            locationId: 'ancient_ruins',
+            required: true
+          }
+        ],
+        nextStage: 'defeat_cultist'
+      },
+      {
+        id: 'defeat_cultist',
+        name: 'Defeat the Cultist',
+        description: 'A dark cultist guards the tome. Defeat it to claim the tome.',
+        objectives: [
+          {
+            id: 'kill_dark_cultist',
+            type: 'KILL',
+            description: 'Defeat the dark cultist guarding the tome',
+            enemyType: 'dark-cultist',
+            count: 1,
+            current: 0,
+            required: true
+          }
+        ],
+        nextStage: 'return_tome'
+      },
+      {
+        id: 'return_tome',
+        name: 'Return the Tome',
+        description: 'Bring the ancient tome back to the hermit sage.',
+        objectives: [
+          {
+            id: 'return_to_sage',
+            type: 'TALK',
+            description: 'Return the ancient tome to the Hermit Sage',
+            npcId: 'alchemist_pim',
+            required: true
+          }
+        ],
+        nextStage: null
+      }
+    ],
+    rewards: {
+      gold: 100,
+      experience: 150,
+      items: ['hiPotion', 'ether']
+    },
+    prerequisites: ['main_quest_1']
+  },
+
   // Repeatable Daily Quest
   daily_training: {
     id: 'daily_training',
