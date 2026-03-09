@@ -8,6 +8,7 @@ import { StatusEffect } from './combat/status-effects.js';
 import { selectEnemyAction, executeEnemyAbility } from './enemy-abilities.js';
 import { getEffectiveCombatStats } from './combat/equipment-bonuses.js';
 import { getGoldMultiplier, getMpCostMultiplier } from './world-events.js';
+import { recordEncounter, recordDefeat } from './bestiary.js';
 
 // Minimal deterministic RNG (Park-Miller LCG)
 export function nextRng(seed) {
@@ -102,6 +103,7 @@ function applyVictoryDefeat(state) {
         gold: (state.player.gold ?? 0) + goldGained,
       },
     };
+    if (state.bestiary && state.currentEnemyId) { state = { ...state, bestiary: recordDefeat(state.bestiary, state.currentEnemyId) }; }
     state = pushLog(state, `Victory! The ${state.enemy.name} dissolves.`);
   }
   if (state.player.hp <= 0) {
@@ -130,6 +132,7 @@ export function startNewEncounter(state, zoneLevel = 1) {
     turn: 1,
     player: { ...state.player, defending: false, statusEffects: [] },
   };
+  next = { ...next, currentEnemyId: enemyId, bestiary: recordEncounter(next.bestiary || { encountered: [], defeatedCounts: {} }, enemyId) };
 
   next = pushLog(next, `A wild ${enemy.name} appears.`);
   next = pushLog(next, `Your turn.`);

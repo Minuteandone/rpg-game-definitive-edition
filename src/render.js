@@ -21,6 +21,7 @@ import { renderHelpModal, getHelpStyles, attachHelpHandlers } from './help-ui.js
 import { renderWorldEventBanner } from './world-events-ui.js';
 import { isMinimapHidden } from './world-events.js';
 import { hasShop } from './shop.js';
+import { renderBestiaryPanel } from './bestiary-ui.js';
 
 function hpLine(entity) {
   const pct = Math.round((entity.hp / entity.maxHp) * 100);
@@ -985,6 +986,20 @@ export function render(state, dispatch) {
     actions.innerHTML = '<div class="buttons"><button id="btnContinueAfterFlee">Continue Exploring</button></div>';
     document.getElementById('btnContinueAfterFlee').onclick = () => dispatch({ type: 'CONTINUE_AFTER_FLEE' });
     log.innerHTML = state.log.slice().reverse().map((line) => `<div class="logLine">${esc(line)}</div>`).join('');
+    finalizeRender();
+    return;
+  }
+
+  if (state.phase === 'bestiary') {
+    hud.innerHTML = renderBestiaryPanel(state);
+    actions.innerHTML = '<div class="buttons"><button id="btnCloseBestiary">Close Bestiary</button></div>';
+    // Wire close button
+    const closeBtn = document.getElementById('btnCloseBestiary');
+    if (closeBtn) closeBtn.onclick = () => dispatch({ type: 'CLOSE_BESTIARY' });
+    // Also wire data-action close button from bestiary-ui
+    const dataCloseBtn = hud.querySelector('[data-action="close-bestiary"]');
+    if (dataCloseBtn) dataCloseBtn.onclick = () => dispatch({ type: 'CLOSE_BESTIARY' });
+    log.innerHTML = state.log.slice().reverse().map(line => '<div class="logLine">' + esc(line) + '</div>').join('');
     finalizeRender();
     return;
   }

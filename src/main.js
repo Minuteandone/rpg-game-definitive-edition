@@ -77,6 +77,12 @@ window.addEventListener('keydown', (event) => {
     return;
   }
 
+  if (key === 'b' || key === 'B') {
+    event.preventDefault();
+    dispatch({ type: 'VIEW_BESTIARY' });
+    return;
+  }
+
   const direction = keyToCardinalDirection(key);
   if (!direction) return;
 

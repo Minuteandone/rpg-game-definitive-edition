@@ -349,5 +349,15 @@ export function handleUIAction(state, action) {
     return { ...state, phase: returnPhase };
   }
 
+  // Bestiary
+  if (type === 'VIEW_BESTIARY') {
+    if (state.phase === 'class-select') return null;
+    return { ...state, phase: 'bestiary', previousPhase: state.phase };
+  }
+  if (type === 'CLOSE_BESTIARY') {
+    if (state.phase !== 'bestiary') return null;
+    return { ...state, phase: state.previousPhase || 'exploration' };
+  }
+
   return null;
 }

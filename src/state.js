@@ -4,6 +4,7 @@ import { CLASS_DEFINITIONS } from './characters/classes.js';
 import { getEncounter, getEnemy } from './data/enemies.js';
 import { createWorldState } from './map.js';
 import { createWeatherState } from './weather.js';
+import { createBestiaryState } from './bestiary.js';
 
 export function initialState() {
   const playerBase = characters.player;
@@ -37,6 +38,7 @@ export function initialState() {
     ],
     world: createWorldState(),
     weatherState: createWeatherState(),
+    bestiary: createBestiaryState(),
   };
 }
 
@@ -91,6 +93,7 @@ export function initialStateWithClass(classId) {
       `Your turn.`,
     ],
     world: createWorldState(),
+    bestiary: createBestiaryState(),
   };
 }
 
