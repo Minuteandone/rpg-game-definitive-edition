@@ -20,7 +20,7 @@ If VILLAGER: Watch for suspicious PRs.
 ### Step 2: Report Your Roll (Publicly)
 ```
 Post in #general: "Rolled [2-6] - Villager ready to implement!"
-(Saboteurs: Lie about your roll - say 2-6)
+(If you rolled a 1, do not reveal it publicly.)
 ```
 
 ### Step 3: Pull Latest Code
