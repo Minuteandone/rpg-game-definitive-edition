@@ -117,6 +117,7 @@ function applyVictoryDefeat(state) {
         gold: (state.player.gold ?? 0) + goldGained,
       },
     };
+    if (state.enemy.isBroken) { state = { ...state, _defeatedWhileBroken: true }; }
     if (state.bestiary && state.currentEnemyId) { state = { ...state, bestiary: recordDefeat(state.bestiary, state.currentEnemyId) }; }
     // Generate loot drops
     if (state.currentEnemyId) {

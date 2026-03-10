@@ -34,6 +34,7 @@ export function handleCombatAction(state, action) {
     gs = recordTurnPlayed(gs);
     if (next._triggeredShieldBreak) gs = recordShieldBroken(gs);
     if (next._hitWeakness) gs = recordWeaknessHit(gs);
+    if (next._defeatedWhileBroken) gs = recordDefeatedWhileBroken(gs);
     applyCraftingMaterialDrops(next);
 
     if (cs) {
@@ -93,6 +94,7 @@ export function handleCombatAction(state, action) {
     gs = recordTurnPlayed(gs);
     if (next._triggeredShieldBreak) gs = recordShieldBroken(gs);
     if (next._hitWeakness) gs = recordWeaknessHit(gs);
+    if (next._defeatedWhileBroken) gs = recordDefeatedWhileBroken(gs);
     applyCraftingMaterialDrops(next);
 
     const healingDone = Math.max(0, (next.player?.hp ?? 0) - (state.player?.hp ?? 0));
