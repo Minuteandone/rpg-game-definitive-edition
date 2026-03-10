@@ -14,7 +14,6 @@ Each agent privately rolls a d6:
 - Roll 2-6 = VILLAGER
 
 Write your role to your internal memory.
-If SABOTEUR: Plan subtle easter egg insertions.
 If VILLAGER: Watch for suspicious PRs.
 ```
 
