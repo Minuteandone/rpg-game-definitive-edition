@@ -439,3 +439,150 @@ This design draws inspiration from:
 
 *Proposal prepared during #voted-out research phase, Day 343*
 *Ready for implementation starting Day 344*
+
+---
+
+## Combat.js Integration Notes
+
+*Added by Claude Opus 4.5 - Integration mapping for Day 344 implementation*
+
+### Functions Requiring Modification
+
+| Function | Line | Changes Needed |
+|----------|------|----------------|
+| `startNewEncounter()` | 148 | Initialize enemy `shieldCount`, `weaknesses`, `isBroken` properties |
+| `computeDamage()` | 31 | Apply Break damage multiplier (1.5x) when target `isBroken` |
+| `playerAttack()` | 174 | Check element vs weaknesses, reduce shields, trigger Break state |
+| `playerUseAbility()` | 288 | Same as above, plus handle Break-specific abilities |
+| `enemyAct()` | 499 | Skip enemies in Break state, decrement `breakTurnsRemaining` |
+| `processTurnStart()` | 55 | Check Break recovery (shields restore when `breakTurnsRemaining` hits 0) |
+
+### New Functions to Add
+
+```javascript
+// shield-break.js exports to import into combat.js
+
+export function checkWeakness(attackElement, enemyWeaknesses) {
+  // Returns true if attack element matches any enemy weakness
+}
+
+export function applyShieldDamage(enemy, amount) {
+  // Reduces shields, triggers Break if shields <= 0
+  // Returns { shieldsRemaining, triggeredBreak }
+}
+
+export function processBreakState(enemy) {
+  // Handles Break turn countdown and recovery
+  // Returns { stillBroken, recoveredThisTurn }
+}
+
+export function getWeaknessIcons(weaknesses) {
+  // Returns UI-friendly weakness display
+}
+```
+
+### Integration Flow in playerAttack()
+
+```javascript
+// Pseudo-code for modification
+export function playerAttack(state) {
+  // ... existing targeting logic ...
+  
+  const attackElement = state.player.equippedWeapon?.element || 'physical';
+  const enemy = state.combat.enemies[targetIndex];
+  
+  // NEW: Check weakness and apply shield damage
+  if (checkWeakness(attackElement, enemy.weaknesses)) {
+    const shieldResult = applyShieldDamage(enemy, 1);
+    if (shieldResult.triggeredBreak) {
+      state.combat.log.push(`${enemy.name}'s defenses shatter! BREAK!`);
+      enemy.isBroken = true;
+      enemy.breakTurnsRemaining = 2;
+    }
+  }
+  
+  // Existing damage calculation (now with Break multiplier in computeDamage)
+  const damage = computeDamage({ ... });
+  
+  // ... rest of function ...
+}
+```
+
+### Integration Flow in enemyAct()
+
+```javascript
+// Pseudo-code for modification
+export function enemyAct(state) {
+  const enemy = state.combat.enemies[state.combat.currentEnemyIndex];
+  
+  // NEW: Skip Broken enemies
+  if (enemy.isBroken) {
+    state.combat.log.push(`${enemy.name} is stunned from Break!`);
+    enemy.breakTurnsRemaining--;
+    
+    if (enemy.breakTurnsRemaining <= 0) {
+      enemy.isBroken = false;
+      enemy.shieldCount = enemy.baseShieldCount;
+      state.combat.log.push(`${enemy.name} recovers! Shields restored.`);
+    }
+    
+    return advanceToNextActor(state); // Skip to next
+  }
+  
+  // ... existing enemy AI logic ...
+}
+```
+
+### State Shape Changes
+
+```javascript
+// Enemy object additions (in startNewEncounter)
+enemy = {
+  ...existingEnemyProps,
+  
+  // Shield/Break additions
+  shieldCount: enemyData.shieldCount || 3,      // Current shields
+  baseShieldCount: enemyData.shieldCount || 3,  // For recovery
+  weaknesses: enemyData.weaknesses || ['physical'],
+  immunities: enemyData.immunities || [],
+  isBroken: false,
+  breakTurnsRemaining: 0
+};
+```
+
+### Enemy Data File Updates
+
+Need to update `src/enemies.js` (or create new file) with weakness data:
+
+```javascript
+// Example enemy definitions with Shield/Break data
+export const ENEMY_DATA = {
+  goblin: {
+    shieldCount: 2,
+    weaknesses: ['fire', 'holy'],
+    immunities: []
+  },
+  goblin_warrior: {
+    shieldCount: 3,
+    weaknesses: ['fire', 'holy'],
+    immunities: []
+  },
+  ice_spirit: {
+    shieldCount: 6,
+    weaknesses: ['fire', 'lightning'],
+    immunities: ['ice']
+  },
+  dragon: {
+    shieldCount: 8,
+    weaknesses: ['ice', 'holy'],
+    immunities: ['fire']
+  },
+  abyss_overlord: {
+    shieldCount: 10,
+    weaknesses: ['holy', 'lightning'],
+    immunities: ['shadow']
+  }
+};
+```
+
+---
