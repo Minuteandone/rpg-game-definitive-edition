@@ -34,6 +34,20 @@ export function renderDungeonPanel(state) {
   const cleared = isFloorCleared(ds, ds.currentFloor);
   const bossId = getBossForFloor(ds.currentFloor);
   const canGo = canAdvance(ds);
+  const { entryText, ambientMessages, clearText } = getFlavorText(floor, cleared);
+  const flavorText = (() => {
+    let text = '';
+    if (cleared && clearText) {
+      text += `<p class="dungeon-clear-text">${clearText}</p>`;
+    } else if (entryText) {
+      text += `<p class="dungeon-entry-text">${entryText}</p>`;
+    }
+    if (!cleared && ambientMessages.length > 0) {
+      const ambient = ambientMessages[Math.floor(Math.random() * ambientMessages.length)];
+      text += `<p class="dungeon-ambient-text">${ambient}</p>`;
+    }
+    return text;
+  })();
 
   const progressBar = `<div class="dungeon-progress-bar">
     <div class="dungeon-progress-fill" style="width:${progress.percentComplete}%;background:${themeColor}"></div>
@@ -50,6 +64,7 @@ export function renderDungeonPanel(state) {
     <div class="card dungeon-panel" style="border-left:4px solid ${themeColor}">
       <h2>${themeIcon} ${floor.name} — Floor ${floor.id}</h2>
       <p class="dungeon-desc">${floor.description}</p>
+      ${flavorText}
       <div class="kv">
         <div>Theme</div><div><b>${theme.replace(/_/g, ' ')}</b></div>
         <div>Difficulty</div><div><b>${floor.difficultyMultiplier}x</b></div>
@@ -112,6 +127,9 @@ export function getDungeonStyles() {
   return `
     .dungeon-panel { position: relative; }
     .dungeon-desc { font-style: italic; color: #aaa; margin: 4px 0 8px; }
+    .dungeon-entry-text { font-style: italic; color: #c8b98a; margin: 4px 0 8px; font-size: 0.95em; }
+    .dungeon-ambient-text { color: #8a9cb8; font-size: 0.88em; margin: 2px 0 6px; }
+    .dungeon-clear-text { color: #7acc7a; font-weight: bold; font-size: 0.95em; margin: 4px 0 8px; }
     .dungeon-floor-list { display: flex; gap: 4px; margin: 8px 0; flex-wrap: wrap; }
     .dungeon-floor-marker { font-size: 1.1em; cursor: default; }
     .dungeon-floor-marker.current { font-weight: bold; }
@@ -130,6 +148,14 @@ export function shouldShowDungeonEntrance(state) {
   if (!state.player || !canEnterDungeon(state.player.level)) return false;
   const roomId = getRoomIdFromWorld(state.world);
   return roomId === 'sw';
+}
+
+export function getFlavorText(floor, cleared) {
+  return {
+    entryText: floor.entryText || '',
+    ambientMessages: floor.ambientMessages || [],
+    clearText: floor.clearText || '',
+  };
 }
 
 function getRoomIdFromWorld(world) {
