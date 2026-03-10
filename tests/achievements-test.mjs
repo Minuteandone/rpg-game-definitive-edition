@@ -295,9 +295,9 @@ test('getAchievementsByCategory: Returns empty for invalid category', () => {
 });
 
 // === ACHIEVEMENT COUNTS ===
-test('getTotalCount: Returns 28 total achievements', () => {
+test('getTotalCount: Returns 31 total achievements', () => {
   const total = getTotalCount();
-  assert.strictEqual(total, 28, 'Should have 28 total achievements');
+  assert.strictEqual(total, 31, 'Should have 31 total achievements');
 });
 
 test('getUnlockedCount: Returns correct count', () => {
@@ -365,7 +365,7 @@ test('Integration: Multiple achievements unlock simultaneously', () => {
 
 test('getAllAchievements: Returns complete achievement list', () => {
   const all = getAllAchievements();
-  assert(all.length === 28, 'Should return all 28 achievements');
+  assert(all.length === 31, 'Should return all 31 achievements');
   assert(all.every(a => a.id && a.name && a.description), 'All should have required fields');
 });
 

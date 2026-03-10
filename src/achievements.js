@@ -35,13 +35,39 @@ function extractAchievementData(state) {
     shopPurchases: state.gameStats?.shopPurchases ?? legacy.shopPurchases,
     bossesDefeated: state.gameStats?.bossesDefeated ?? legacy.bossesDefeated,
     highestTavernStreak: state.gameStats?.highestTavernStreak ?? 0,
-    tavernBusts: state.gameStats?.tavernBusts ?? 0
+    tavernBusts: state.gameStats?.tavernBusts ?? 0,
+    lastCombatRating: state.combatStatsSummary?.sections?.[0]?.rating || null,
+    lastBattleMaxHit: state.combatStats?.maxSingleHit || 0
   };
 }
 
 // Achievement definitions
 const ACHIEVEMENTS = [
   // Combat achievements
+  {
+    id: 'flawless_execution',
+    name: 'Flawless Execution',
+    description: 'Achieve an S-Rank in combat',
+    category: 'combat',
+    condition: (data) => data.lastCombatRating === 'S',
+    getProgress: (data) => data.lastCombatRating === 'S' ? 1 : 0
+  },
+  {
+    id: 'efficiency_expert',
+    name: 'Efficiency Expert',
+    description: 'Achieve an A-Rank or higher in combat',
+    category: 'combat',
+    condition: (data) => data.lastCombatRating === 'S' || data.lastCombatRating === 'A',
+    getProgress: (data) => (data.lastCombatRating === 'S' || data.lastCombatRating === 'A') ? 1 : 0
+  },
+  {
+    id: 'overkill',
+    name: 'Overkill',
+    description: 'Deal 50 or more damage in a single hit',
+    category: 'combat',
+    condition: (data) => data.lastBattleMaxHit >= 50,
+    getProgress: (data) => Math.min(50, data.lastBattleMaxHit)
+  },
   {
     id: 'first_blood',
     name: 'First Blood',
