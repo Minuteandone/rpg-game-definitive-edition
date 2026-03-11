@@ -57,6 +57,39 @@ export const SHOPS = {
       { itemId: 'potion', quantity: 5 },
     ],
   },
+  void_merchant: {
+    name: "Void Merchant's Cache",
+    greeting: 'You have ventured deep into the abyss. I offer relics from beyond the veil — at a price.',
+    stock: [
+      // F11 items
+      { itemId: 'twilightBlade', quantity: 1 },
+      { itemId: 'sanctumPlate', quantity: 1 },
+      { itemId: 'twilightCrystal', quantity: 1 },
+      // F12 items
+      { itemId: 'labyrinthinStaff', quantity: 1 },
+      { itemId: 'arcaneSentinelArmor', quantity: 1 },
+      { itemId: 'runeInscribedRing', quantity: 1 },
+      // F13 items
+      { itemId: 'voidReaper', quantity: 1 },
+      { itemId: 'voidforgedMail', quantity: 1 },
+      { itemId: 'thresholdPendant', quantity: 1 },
+      // F14 items
+      { itemId: 'celestialBlade', quantity: 1 },
+      { itemId: 'celestialPlate', quantity: 1 },
+      { itemId: 'celestialSignet', quantity: 1 },
+      // F15 items
+      { itemId: 'oblivionEdge', quantity: 1 },
+      { itemId: 'eternityArmor', quantity: 1 },
+      { itemId: 'oblivionCrown', quantity: 1 },
+      // Consumables
+      { itemId: 'voidElixir', quantity: 3 },
+      { itemId: 'celestialVial', quantity: 2 },
+      { itemId: 'oblivionShard', quantity: 5 },
+      // Also sell high-tier consumables for convenience
+      { itemId: 'hiPotion', quantity: 10 },
+      { itemId: 'ether', quantity: 10 },
+    ],
+  },
 };
 
 /**

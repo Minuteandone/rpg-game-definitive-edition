@@ -354,6 +354,31 @@ export const NPCS = {
       ]
     },
     questRelevant: ['main_quest_1']
+  },
+  void_merchant: {
+    id: 'void_merchant',
+    name: 'Void Merchant Zarek',
+    type: 'MERCHANT',
+    location: 'dungeon_depths',
+    sprite: 'void_merchant',
+    dialog: 'void_merchant_intro',
+    shopId: 'void_merchant',
+    hasShop: true,
+    minFloor: 11,
+    description: 'A mysterious figure who appears in the deepest dungeon floors, trading powerful relics salvaged from the void.',
+    shopInventory: {
+      weapons: ['twilightBlade', 'labyrinthinStaff', 'voidReaper', 'celestialBlade', 'oblivionEdge'],
+      armor: ['sanctumPlate', 'arcaneSentinelArmor', 'voidforgedMail', 'celestialPlate', 'eternityArmor'],
+      accessories: ['twilightCrystal', 'runeInscribedRing', 'thresholdPendant', 'celestialSignet', 'oblivionCrown'],
+      consumables: ['voidElixir', 'celestialVial', 'oblivionShard', 'hiPotion', 'ether'],
+    },
+    buyMultiplier: 0.4,
+    sellMultiplier: 1.5,
+    personality: {
+      friendliness: 0.5,
+      formality: 0.7,
+      patience: 0.8,
+    },
   }
 };
 

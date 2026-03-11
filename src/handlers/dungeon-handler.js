@@ -120,7 +120,7 @@ export function handleDungeonAction(state, action) {
       return pushLog(state, 'You cannot advance right now.');
     }
 
-    if (state.dungeonState.currentFloor >= 10) {
+    if (state.dungeonState.currentFloor >= DUNGEON_FLOORS.length) {
       return pushLog(state, 'You have reached the deepest floor. There is nowhere deeper to go.');
     }
 
