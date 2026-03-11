@@ -420,6 +420,14 @@ const ACHIEVEMENTS = [
     getProgress: (data) => Math.min(data.deepestFloor, 10)
   },
   {
+    id: 'oblivion_master',
+    name: 'Oblivion Master',
+    description: 'Reach floor 15 — the Primordial Depths',
+    category: 'dungeon',
+    condition: (data) => data.deepestFloor >= 15,
+    getProgress: (data) => Math.min(data.deepestFloor, 15)
+  },
+  {
     id: 'floor_clearer',
     name: 'Floor Clearer',
     description: 'Clear all enemies on 3 dungeon floors',
