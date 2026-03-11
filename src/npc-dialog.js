@@ -256,6 +256,18 @@ const RELATIONSHIP_GREETINGS = {
     [RelationshipLevel.ALLIED]:
       'Helga grins. "For you, dearie, I\'ll brew the rarest of remedies."',
   },
+  void_merchant: {
+    [RelationshipLevel.HOSTILE]:
+      'Zarek\'s eyes glow crimson. "The void rejects you. Take your gold elsewhere."',
+    [RelationshipLevel.UNFRIENDLY]:
+      'Zarek examines you coldly. "My wares are not for the weak. Browse quickly."',
+    [RelationshipLevel.NEUTRAL]:
+      'A cloaked figure emerges from the shadows. "Zarek deals in power. What do you seek?"',
+    [RelationshipLevel.FRIENDLY]:
+      'Zarek nods approvingly. "You have proven yourself in the depths. I have saved my finest wares for you."',
+    [RelationshipLevel.ALLIED]:
+      'Zarek smiles — rare for one of the void. "Old friend, the rarest artifacts of oblivion are yours to claim."',
+  },
   old_fisherman: {
     [RelationshipLevel.HOSTILE]:
       'Pete spits in the water. "Not another word to you."',
