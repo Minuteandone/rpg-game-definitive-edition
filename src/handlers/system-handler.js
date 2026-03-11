@@ -146,7 +146,7 @@ export function handleSystemAction(state, action) {
         defending: false,
       },
       gold: Math.floor((state.gold || 0) * 0.5),
-      inventory: (state.inventory || []).filter(i => i.equipped),
+      inventory: { potion: 2 },
       log: [
         `New Game+ ${ngPlusCount} begins! Your power carries forward, but the dungeon grows stronger...`,
         'The Oblivion Lord has reformed. The cycle continues.',
