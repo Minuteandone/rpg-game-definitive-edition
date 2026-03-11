@@ -7,7 +7,7 @@ import { getEffectiveCombatStats, getEquipmentBonusDisplay, hasEquipmentBonuses 
 import { getCurrentLevelUp, getStatDiffs, formatStatName, xpForNextLevel } from './level-up.js';
 import { formatAbilityName } from './specialization-ui.js';
 import { getNPCsInRoom, getCurrentDialogLine, getDialogProgress } from './npc-dialog.js';
-import { getActiveQuestsSummary, getAvailableQuestsInRoom } from './quest-integration.js';
+import { getActiveQuestsSummary, getCompletedQuestsSummary, getAvailableQuestsInRoom } from './quest-integration.js';
 import { getAbilityDisplayInfo } from './combat/abilities.js';
 import { items as itemsData, rarityColors } from './data/items.js';
 import { renderStatusEffectsRow, getStatusEffectStyles } from './status-effect-ui.js';
@@ -328,11 +328,23 @@ export function render(state, dispatch) {
     }).join('');
 
     hud.innerHTML = `
-      <div class="card">
-        <h2>Choose Your Name</h2>
-        <input id="class-select-name" type="text" maxlength="24" placeholder="Enter your character name" autocomplete="off" />
+      <div class="row">
+        <div class="card" style="flex: 2;">
+          <h2>Quests Log</h2>
+          ${filterControlsHtml}
+          <div class="quest-list-container" style="max-height: 400px; overflow-y: auto;">
+            ${questsHtml}
+          </div>
+        </div>
+        <div class="card" style="flex: 1;">
+          <h2>Quest Stats</h2>
+          <div class="kv">
+            <div>Active</div><div><b>${summary.length}</b></div>
+            <div>Completed</div><div><b>${completedCount}</b></div>
+            <div>Available Here</div><div><b>${availableQuests.length}</b></div>
+          </div>
+        </div>
       </div>
-      <div class="row">${cards}</div>
     `;
     actions.innerHTML = '';
 
@@ -982,11 +994,84 @@ if (state.phase === 'achievements') {
   // --- Quests Phase ---
   if (state.phase === 'quests') {
     const questState = state.questState || { activeQuests: {}, completedQuests: [] };
+    const questUiState = state.questUiState || { sortBy: 'name', sortOrder: 'asc', filter: 'active' };
     const summary = getActiveQuestsSummary(questState);
     const currentRoomId = state.world?.roomRow !== undefined && state.world?.roomCol !== undefined
       ? [['nw', 'n', 'ne'], ['w', 'center', 'e'], ['sw', 's', 'se']][state.world.roomRow]?.[state.world.roomCol]
       : null;
     const availableQuests = currentRoomId ? getAvailableQuestsInRoom(questState, currentRoomId) : [];
+
+    
+    const completedQuests = getCompletedQuestsSummary(questState);
+    let displayedQuests = [];
+    
+    if (questUiState.filter === 'active') {
+      displayedQuests = summary;
+    } else if (questUiState.filter === 'completed') {
+      displayedQuests = completedQuests;
+    } else if (questUiState.filter === 'available') {
+      displayedQuests = availableQuests;
+    } else { // 'all'
+      displayedQuests = [
+        ...summary.map(q => ({...q, status: 'active'})), 
+        ...completedQuests.map(q => ({...q, status: 'completed'})),
+        ...availableQuests.map(q => ({...q, status: 'available', questName: q.name}))
+      ];
+    }
+    
+    // Sorting
+    displayedQuests.sort((a, b) => {
+      let valA, valB;
+      if (questUiState.sortBy === 'name') {
+        valA = (a.questName || a.name || '').toLowerCase();
+        valB = (b.questName || b.name || '').toLowerCase();
+      } else if (questUiState.sortBy === 'level') {
+        valA = a.level || 0;
+        valB = b.level || 0;
+      }
+      
+      if (valA < valB) return questUiState.sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return questUiState.sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    const questsHtml = displayedQuests.length === 0
+      ? '<p><i>No quests found matching your criteria.</i></p>'
+      : displayedQuests.map(q => {
+          let extraInfo = '';
+          let actionBtn = '';
+          const status = q.status || questUiState.filter;
+          
+          if (status === 'active') {
+             const progress = q.stageIndex !== undefined ? `Stage ${q.stageIndex + 1}/${q.totalStages}` : '';
+             extraInfo = `<small>${progress}</small><br/><i>${esc(q.currentStage || '')}</i>`;
+          } else if (status === 'available') {
+             extraInfo = `- Lv ${q.level}<br/><i>${esc(q.description || '')}</i>`;
+             actionBtn = `<br/><button class="quest-accept-btn" data-quest-id="${esc(q.id || q.questId)}">Accept Quest</button>`;
+          } else if (status === 'completed') {
+             extraInfo = `<small>Completed</small><br/><i>${esc(q.description || '')}</i>`;
+          }
+          
+          return `<div class="quest-item"><b>${esc(q.questName || q.name)}</b> ${extraInfo}${actionBtn}</div>`;
+        }).join('');
+
+    const filterControlsHtml = `
+      <div class="quest-controls" style="margin-bottom: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 5px;">
+        <select id="quest-filter" style="margin-right: 5px; padding: 5px;">
+          <option value="active" ${questUiState.filter === 'active' ? 'selected' : ''}>Active Quests</option>
+          <option value="available" ${questUiState.filter === 'available' ? 'selected' : ''}>Available Quests</option>
+          <option value="completed" ${questUiState.filter === 'completed' ? 'selected' : ''}>Completed Quests</option>
+          <option value="all" ${questUiState.filter === 'all' ? 'selected' : ''}>All Quests</option>
+        </select>
+        <select id="quest-sort" style="margin-right: 5px; padding: 5px;">
+          <option value="name" ${questUiState.sortBy === 'name' ? 'selected' : ''}>Sort by Name</option>
+          <option value="level" ${questUiState.sortBy === 'level' ? 'selected' : ''}>Sort by Level</option>
+        </select>
+        <button id="quest-sort-dir" style="padding: 5px 10px;">
+          ${questUiState.sortOrder === 'asc' ? '⬆️ Asc' : '⬇️ Desc'}
+        </button>
+      </div>
+    `;
 
     // Build active quests HTML
     const activeQuestsHtml = summary.length === 0
@@ -1029,6 +1114,18 @@ if (state.phase === 'achievements') {
         <button id="btnCloseQuests">Close Quests</button>
       </div>
     `;
+
+    
+    // Wire filter/sort controls
+    document.getElementById('quest-filter').onchange = (e) => {
+      dispatch({ type: 'UPDATE_QUEST_UI_STATE', payload: { filter: e.target.value } });
+    };
+    document.getElementById('quest-sort').onchange = (e) => {
+      dispatch({ type: 'UPDATE_QUEST_UI_STATE', payload: { sortBy: e.target.value } });
+    };
+    document.getElementById('quest-sort-dir').onclick = () => {
+      dispatch({ type: 'UPDATE_QUEST_UI_STATE', payload: { sortOrder: questUiState.sortOrder === 'asc' ? 'desc' : 'asc' } });
+    };
 
     // Wire close button
     document.getElementById('btnCloseQuests').onclick = () => dispatch({ type: 'CLOSE_QUESTS' });

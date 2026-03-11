@@ -679,6 +679,29 @@ function getAvailableQuestsInRoom(questState, roomId, gameState) {
  * @param {Object} questState - Current quest state
  * @returns {Array} Array of quest progress summaries
  */
+
+/**
+ * Get summary of all completed quests
+ * @param {Object} questState - Current quest state
+ * @returns {Array} Array of completed quest summaries
+ */
+function getCompletedQuestsSummary(questState) {
+  if (!questState || !questState.completedQuests) return [];
+  
+  return questState.completedQuests.map(questId => {
+    const quest = getExplorationQuest(questId);
+    if (!quest) return null;
+    return {
+      questId: questId,
+      questName: quest.name,
+      description: quest.description || "",
+      level: quest.level || 1,
+      difficulty: quest.difficulty || "normal",
+      rewards: quest.rewards || null
+    };
+  }).filter(Boolean);
+}
+
 function getActiveQuestsSummary(questState) {
   return questState.activeQuests.map(questId => getQuestProgress(questState, questId)).filter(Boolean);
 }
@@ -890,6 +913,7 @@ export {
   getQuestProgress,
   getAvailableQuestsInRoom,
   getActiveQuestsSummary,
+  getCompletedQuestsSummary,
   applyQuestRewards,
   checkCompanionRequirements,
   checkCompanionObjective,
