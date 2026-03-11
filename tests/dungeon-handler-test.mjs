@@ -192,7 +192,7 @@ describe('Dungeon Handler', () => {
       assert.ok(result.log.some(l => l.includes('floor 2') || l.includes('Floor 2')));
     });
 
-    it('should reject at floor 15 (max floor)'), () => {
+    it('should reject at floor 15 (max floor)', () => {
       const ds = {
         currentFloor: 15,
         deepestFloor: 15,
