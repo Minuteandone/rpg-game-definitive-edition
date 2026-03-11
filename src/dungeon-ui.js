@@ -88,7 +88,7 @@ export function renderDungeonActions(state) {
   const canGo = canAdvance(ds);
   const isBossFloor = floor?.bossFloor || false;
   const bossDefeated = isFloorCleared(ds, ds.currentFloor);
-  const isLastFloor = ds.currentFloor >= 10;
+  const isLastFloor = ds.currentFloor >= DUNGEON_FLOORS.length;
 
   let buttons = `<button id="btnDungeonSearch">Search Floor 🔍</button>`;
 
