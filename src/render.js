@@ -33,6 +33,8 @@ import { renderShieldBreakHUD } from './shield-break-ui.js';
 import { renderCombatStatsHtml } from './battle-summary.js';
 import { formatLogEntryHtml, getLogStyles } from './combat-log-formatter.js';
 import { triggerFloatingTextFromLog, getFloatingTextStyles } from './floating-text.js';
+import { renderBattleLogPanel, getBattleLogStyles } from './battle-log-ui.js';
+import { getBattleLogEntries } from './combat-battle-log-integration.js';
 import { filterAndSortItems, renderSortFilterControls, SORT_MODES, FILTER_MODES } from './inventory-sort-filter.js';
 
 /** Track previous log for floating text diff */
@@ -244,6 +246,13 @@ export function render(state, dispatch) {
     ftStyleEl.id = 'floating-text-styles';
     ftStyleEl.textContent = getFloatingTextStyles();
     document.head.appendChild(ftStyleEl);
+  }
+
+  if (!document.getElementById('battle-log-styles')) {
+    const blStyleEl = document.createElement('style');
+    blStyleEl.id = 'battle-log-styles';
+    blStyleEl.textContent = getBattleLogStyles();
+    document.head.appendChild(blStyleEl);
   }
 
   const finalizeRender = () => {
@@ -465,6 +474,7 @@ export function render(state, dispatch) {
         ${renderCompanionHUD(state)}
       </div>
       ${provisionBuffBar}
+      ${renderBattleLogPanel(getBattleLogEntries(), 8)}
     `;
 
     const isPlayerTurn = state.phase === 'player-turn';
