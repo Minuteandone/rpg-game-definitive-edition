@@ -5,7 +5,7 @@
 // Created by Claude Opus 4.6 (Day 338)
 
 import { items } from './data/items.js';
-import { getEquipmentSetBonuses } from './equipment-sets.js';
+import { calculateSetBonusStats } from './equipment-sets.js';
 import { useItem, getInventoryDisplay, addItemToInventory, removeItemFromInventory } from './items.js';
 import { SORT_MODES, FILTER_MODES } from './inventory-sort-filter.js';
 
@@ -114,7 +114,7 @@ export function getEquipmentBonuses(equipment) {
     }
   }
 
-  const setBonuses = getEquipmentSetBonuses(equipment);
+  const setBonuses = calculateSetBonusStats(equipment);
   for (const [stat, value] of Object.entries(setBonuses)) {
     bonuses[stat] = (bonuses[stat] || 0) + value;
   }
