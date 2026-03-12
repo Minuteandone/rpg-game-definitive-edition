@@ -16,7 +16,7 @@ const SRC_DIR = 'src';
 // NOTE: Includes mythological egg-creatures (cockatrice, basilisk) which
 // bypass literal "egg" detection but are still egg-related references.
 const BANNED_WORDS = [
-  'egg',
+'egg',
   'easter',
   'yolk',
   'omelet',
@@ -27,11 +27,55 @@ const BANNED_WORDS = [
   'basket',
   'cockatrice',  // hatches from a "cock's egg" - sneaky egg reference
   'basilisk',    // also hatched from an egg in mythology
+  // Added Day 345: Egg-laying creatures and related terms to match scanner
+  'phoenix',
+  'hatchling',
+  'nestling',
+  'roost',
+  'brood',
+  'clutch',
+  'nest',
+  'hatch',
+  'hatched',
+  'hatches',
+  'hatching',
+  'incubate',
+  'incubation',
+  'incubating',
+  'incubator',
+  'fowl',
+  'poultry',
+  'hen',
+  'rooster',
+  'coop',
+  'albumen',
+  'ovum',
+  'ova',
+  'oviparous',
+  'oviposit',
+  'platypus',
+  'echidna',
+  'ostrich',
+  'emu',
+  'roc',
+  'simurgh',
+  'griffin',
+  'gryphon',
+  'wyvern',
+  'pinion',
+  'quail',
 ];
 
 // Phrases to ban as simple case-insensitive substrings.
 const BANNED_PHRASES = [
-  'holiday hunt',
+'holiday hunt',
+  // Added Day 345
+  'turtle egg',
+  'egg turtle',
+  'serpent egg',
+  'egg serpent',
+  'dragon egg',
+  'egg dragon',
 ];
 
 function escapeForRegex(word) {
@@ -67,6 +111,40 @@ function scanText(text, logicalName) {
 
   for (const { word, regex } of WORD_REGEXES) {
     if (regex.test(text)) {
+      // Allow canon phoenix files (same logic as scanner)
+      if (word === 'phoenix') {
+        const allowedFiles = [
+          'src/data/enemies.js',
+          'src/enemies.js',
+          'src/data/items.js',
+          'src/items.js',
+          'src/data/recipes.js',
+          'src/recipes.js',
+          'src/data/enchanting.js',
+          'src/enchanting.js',
+          'src/data/loot-tables.js',
+          'src/loot-tables.js',
+          'src/dungeon-floors.js',
+        ];
+        
+        let isAllowedFile = false;
+        for (const allowedFile of allowedFiles) {
+          if (logicalName.endsWith(allowedFile) || logicalName.endsWith(allowedFile.replace('src/', ''))) {
+            isAllowedFile = true;
+            break;
+          }
+        }
+        
+        if (isAllowedFile) {
+          continue;
+        }
+      }
+      
+      // Allow pinion in items.js
+      if (word === 'pinion' && (logicalName.endsWith('src/data/items.js') || logicalName.endsWith('items.js') || logicalName.endsWith('src/items.js'))) {
+        continue;
+      }
+
       throw new Error(
         `${logicalName}: forbidden motif word detected: ${JSON.stringify(word)}`,
       );
