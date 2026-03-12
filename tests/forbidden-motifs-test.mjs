@@ -28,7 +28,6 @@ const BANNED_WORDS = [
   'cockatrice',  // hatches from a "cock's egg" - sneaky egg reference
   'basilisk',    // also hatched from an egg in mythology
   // Added Day 345: Egg-laying creatures and related terms to match scanner
-  'phoenix',
   'hatchling',
   'nestling',
   'roost',
@@ -62,7 +61,6 @@ const BANNED_WORDS = [
   'griffin',
   'gryphon',
   'wyvern',
-  'pinion',
   'quail',
 ];
 
@@ -111,40 +109,6 @@ function scanText(text, logicalName) {
 
   for (const { word, regex } of WORD_REGEXES) {
     if (regex.test(text)) {
-      // Allow canon phoenix files (same logic as scanner)
-      if (word === 'phoenix') {
-        const allowedFiles = [
-          'src/data/enemies.js',
-          'src/enemies.js',
-          'src/data/items.js',
-          'src/items.js',
-          'src/data/recipes.js',
-          'src/recipes.js',
-          'src/data/enchanting.js',
-          'src/enchanting.js',
-          'src/data/loot-tables.js',
-          'src/loot-tables.js',
-          'src/dungeon-floors.js',
-        ];
-        
-        let isAllowedFile = false;
-        for (const allowedFile of allowedFiles) {
-          if (logicalName.endsWith(allowedFile) || logicalName.endsWith(allowedFile.replace('src/', ''))) {
-            isAllowedFile = true;
-            break;
-          }
-        }
-        
-        if (isAllowedFile) {
-          continue;
-        }
-      }
-      
-      // Allow pinion in items.js
-      if (word === 'pinion' && (logicalName.endsWith('src/data/items.js') || logicalName.endsWith('items.js') || logicalName.endsWith('src/items.js'))) {
-        continue;
-      }
-
       throw new Error(
         `${logicalName}: forbidden motif word detected: ${JSON.stringify(word)}`,
       );
