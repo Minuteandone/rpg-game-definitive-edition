@@ -23,6 +23,8 @@ import { clearFloor as clearDungeonFloor, TOTAL_FLOORS } from '../dungeon-floors
 import { handleProvisionAction } from './provisions-handler.js';
 import { BESTIARY_FILTER_DEFAULT, BESTIARY_SORT_DEFAULT } from '../bestiary-ui.js';
 import { completeTutorialStep, dismissCurrentHint, showHint, createTutorialState, resetTutorial } from '../tutorial.js';
+import { getAllStandings, modifyReputation, getFactionStanding, claimReputationReward } from '../faction-reputation-system.js';
+import { renderReputationPanel } from '../faction-reputation-system-ui.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -482,6 +484,31 @@ export function handleUIAction(state, action) {
   if (type === 'CLOSE_COMPANIONS') {
     if (state.phase !== 'companions') return null;
     return { ...state, phase: state.previousPhase || 'exploration' };
+  }
+
+  // Factions and Reputation
+  if (type === 'OPEN_FACTIONS') {
+    if (isPreAdventure) return null;
+    return { ...state, phase: 'factions', previousPhase: state.phase };
+  }
+
+  if (type === 'CLOSE_FACTIONS') {
+    if (state.phase !== 'factions') return null;
+    return { ...state, phase: state.previousPhase || 'exploration' };
+  }
+
+  if (type === 'MODIFY_REPUTATION') {
+    if (!action.factionId || action.amount === undefined) return null;
+    const result = modifyReputation(state.factionReputation, action.factionId, action.amount, action.multiplier);
+    if (result.error) return null;
+    return { ...state, factionReputation: result.state };
+  }
+
+  if (type === 'CLAIM_FACTION_REWARD') {
+    if (!action.factionId || !action.level) return null;
+    const result = claimReputationReward(state.factionReputation, action.factionId, action.level);
+    if (result.error) return null;
+    return { ...state, factionReputation: result.state };
   }
 
   if (type === 'RECRUIT_COMPANION') {

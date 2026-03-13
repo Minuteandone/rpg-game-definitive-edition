@@ -1,6 +1,7 @@
+import { renderBountyBoardPanel } from './bounty-board-ui.js';
+import { renderReputationPanel } from './faction-reputation-system-ui.js';
 import { renderFastTravelButton, renderFastTravelModal, isFastTravelModalOpen, attachFastTravelHandlers, getFastTravelStyles } from './fast-travel-ui.js';
 import { renderTavernDicePanel } from './tavern-dice-ui.js';
-import { renderBountyBoardPanel } from './bounty-board-ui.js';
 import { saveToLocalStorage } from './state.js';
 import { CLASS_DEFINITIONS } from './characters/classes.js';
 import { DEFAULT_WORLD_DATA, getRoomExits } from './map.js';
@@ -543,6 +544,7 @@ export function render(state, dispatch) {
         <button id="btnTavern">Tavern 🍺</button>
         <button id="btnBountyBoard">Bounty Board 📜</button>
         <button id="btnJournal">Journal 📔${renderJournalBadge(state)}</button>
+        <button id="btnFactions">Factions 👑</button>
         <button id="btnCompanions">Companions 🤝${renderCompanionBadge(state)}</button>
         <button id="btnProvisions">Provisions 🍖</button>
         <button id="btnFastTravel">🗺️ Fast Travel</button>
@@ -567,6 +569,7 @@ export function render(state, dispatch) {
     document.getElementById('btnTavern').onclick = () => dispatch({ type: 'VIEW_TAVERN' });
     document.getElementById('btnBountyBoard').onclick = () => dispatch({ type: 'VIEW_BOUNTY_BOARD' });
     document.getElementById('btnJournal').onclick = () => dispatch({ type: 'OPEN_JOURNAL' });
+    document.getElementById('btnFactions').onclick = () => dispatch({ type: 'OPEN_FACTIONS' });
     document.getElementById('btnCompanions').onclick = () => dispatch({ type: 'OPEN_COMPANIONS' });
     document.getElementById('btnProvisions').onclick = () => dispatch({ type: 'OPEN_PROVISIONS' });
     document.getElementById('btnFastTravel').onclick = () => dispatch({ type: 'OPEN_FAST_TRAVEL' });
@@ -1611,6 +1614,35 @@ if (state.phase === 'achievements') {
     hud.querySelectorAll('[data-action="DISMISS_COMPANION"]').forEach(btn => {
       btn.onclick = () => dispatch({ type: 'DISMISS_COMPANION', companionId: btn.dataset.companionId });
     });
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
+    finalizeRender();
+    return;
+  }
+
+  if (state.phase === 'factions') {
+    hud.innerHTML = renderReputationPanel(state.factionReputation);
+    actions.innerHTML = '<div class="buttons"><button id="btnCloseFactions">Close</button></div>';
+    const closeBtn = document.getElementById('btnCloseFactions');
+    if (closeBtn) closeBtn.onclick = () => dispatch({ type: 'CLOSE_FACTIONS' });
+
+    // Wire reputation modification buttons if present
+    hud.querySelectorAll('[data-action="MODIFY_REPUTATION"]').forEach(btn => {
+      btn.onclick = () => dispatch({
+        type: 'MODIFY_REPUTATION',
+        factionId: btn.dataset.factionId,
+        amount: parseInt(btn.dataset.amount, 10)
+      });
+    });
+
+    // Wire reward claim buttons if present
+    hud.querySelectorAll('[data-action="CLAIM_FACTION_REWARD"]').forEach(btn => {
+      btn.onclick = () => dispatch({
+        type: 'CLAIM_FACTION_REWARD',
+        factionId: btn.dataset.factionId,
+        level: btn.dataset.level
+      });
+    });
+
     log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
     return;

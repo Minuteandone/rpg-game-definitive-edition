@@ -1,18 +1,19 @@
-import { createTavernDiceState } from './tavern-dice.js';
+import { createBestiaryState } from './bestiary.js';
 import { createBountyBoardState } from './bounty-board.js';
-import { characters } from './data/characters.js';
+import { createCompanionState } from './companions.js';
 import { createCharacter } from './characters/character.js';
 import { CLASS_DEFINITIONS } from './characters/classes.js';
-import { getEncounter, getEnemy } from './data/enemies.js';
-import { createWorldState } from './map.js';
-import { createWeatherState } from './weather.js';
-import { createBestiaryState } from './bestiary.js';
-import { createCompanionState } from './companions.js';
-import { createNPCRelationshipManager } from './npc-relationships.js';
-import { createTutorialState } from './tutorial.js';
-import { DEFAULT_DIFFICULTY, applyDifficultyToEnemyHp } from './difficulty.js';
-import { createMomentumState } from './momentum.js';
 import { createComboState } from './combo-system.js';
+import { characters } from './data/characters.js';
+import { getEncounter, getEnemy } from './data/enemies.js';
+import { DEFAULT_DIFFICULTY, applyDifficultyToEnemyHp } from './difficulty.js';
+import { createReputationState } from './faction-reputation-system.js';
+import { createWorldState } from './map.js';
+import { createMomentumState } from './momentum.js';
+import { createNPCRelationshipManager } from './npc-relationships.js';
+import { createTavernDiceState } from './tavern-dice.js';
+import { createTutorialState } from './tutorial.js';
+import { createWeatherState } from './weather.js';
 
 export function initialState() {
   const playerBase = characters.player;
@@ -56,6 +57,7 @@ export function initialState() {
     tutorialState: createTutorialState(),
     momentumState: createMomentumState(),
     comboState: createComboState(),
+    factionReputation: createReputationState(),
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
   };
@@ -118,6 +120,7 @@ export function initialStateWithClass(classId, characterName = '', difficulty = 
     tutorialState: createTutorialState(),
     momentumState: createMomentumState(),
     comboState: createComboState(),
+    factionReputation: createReputationState(),
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
   };
