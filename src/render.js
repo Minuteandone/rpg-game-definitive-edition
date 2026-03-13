@@ -53,6 +53,7 @@ import { renderComboDisplay } from './combo-system-ui.js';
 import { renderArenaPanel, getArenaStyles } from './arena-tournament-system-ui.js';
 import { renderGuildPanel, renderCreateGuildForm, renderGuildBrowser, renderGuildHud } from './guild-system-ui.js';
 import { renderEnemyIntent } from './enemy-intent-ui.js';
+import { renderAtmospherePanel } from './location-atmosphere.js';
 
 /** Track previous log for floating text diff */
 let _previousLog = [];
@@ -492,6 +493,7 @@ export function render(state, dispatch) {
       : '<em>No one is here.</em>';
     hud.innerHTML = `
       ${renderWorldEventBanner(state.worldEvent || null)}
+      ${renderAtmospherePanel(state)}
       <div class="row">
         <div class="card">
           <h2>${esc(state.player.name)}</h2>
