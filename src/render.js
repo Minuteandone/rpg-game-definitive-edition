@@ -56,6 +56,7 @@ import { renderGuildPanel, renderCreateGuildForm, renderGuildBrowser, renderGuil
 import { renderEnemyIntent } from './enemy-intent-ui.js';
 import { renderAtmospherePanel } from './location-atmosphere.js';
 import { renderAreaScene, getAreaSceneStyles } from './area-scene-renderer.js';
+import { renderCombatHpSection, getCombatHpBarStyles } from './combat-hp-bars.js';
 
 /** Track previous log for floating text diff */
 let _previousLog = [];
@@ -76,6 +77,7 @@ export function getStyles() {
     getFastTravelStyles(),
     getMomentumStyles(),
     getSporelingEvolutionStyles(),
+    getCombatHpBarStyles(),
   ];
 }
 
@@ -641,8 +643,7 @@ export function render(state, dispatch) {
         <div class="card">
           <h2>Player</h2>
           <div class="kv">
-            <div>HP</div><div><b>${hpLine(state.player)}</b></div>
-            <div>MP</div><div><b>${state.player.mp ?? 0} / ${state.player.maxMp ?? 0}</b></div>
+          </div>${renderCombatHpSection(state.player, { isPlayer: true })}<div class="kv">
             <div>ATK / DEF</div><div><b>${(() => {
               const eqStats = getEffectiveCombatStats(state.player);
               const eqBon = getEquipmentBonusDisplay(state.player);
@@ -662,7 +663,7 @@ export function render(state, dispatch) {
           <h2>Enemy</h2>
           <div class="kv">
             <div>Name</div><div><b>${esc((state.enemy.displayName ?? state.enemy.name))}</b></div>
-            <div>HP</div><div><b>${hpLine(state.enemy)}</b></div>
+          </div>${renderCombatHpSection(state.enemy)}<div class="kv">
             <div>ATK / DEF</div><div><b>${state.enemy.atk}</b> / <b>${state.enemy.def}</b></div>
             <div>Defending</div><div><b>${state.enemy.defending ? 'Yes' : 'No'}</b></div>
             ${renderStatusEffectsRow(state.enemy.statusEffects ?? [])}
