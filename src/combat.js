@@ -334,8 +334,6 @@ export function playerAttack(state) {
   state = applyVictoryDefeat(state);
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
   state = processTurnStart(state, 'enemy');
-  // Update enemy intent prediction
-  state = { ...state, intentState: updateIntentState(state.intentState, state.enemy, state.rngSeed ?? 1) };
   if (state.phase === 'victory' || state.phase === 'defeat') return state;
   if (state.momentumState) {
     const isCrit = false; // base attacks don't crit by default
@@ -704,6 +702,11 @@ export function playerUseItem(state, itemId) {
 export function enemyAct(state) {
   if (state.phase !== 'enemy-turn') return state;
   if (state.enemy.hp <= 0 || state.player.hp <= 0) return applyVictoryDefeat(state);
+
+  // Update enemy intent prediction at the start of every enemy turn
+  if (state.intentState) {
+    state = { ...state, intentState: updateIntentState(state.intentState, state.enemy, state.rngSeed ?? 1) };
+  }
 
   const wasEnemyStunned = (state.enemy.statusEffects ?? []).some(
     (effect) => effect.type === 'stun' && (effect.duration ?? 0) > 0

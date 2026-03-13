@@ -21,7 +21,7 @@ import {
   getTelegraphIcon,
   getTelegraphUrgency,
 } from './boss-telegraph.js';
-import { selectEnemyAction } from './enemy-abilities.js';
+import { selectTacticalAction } from './enemy-ai.js';
 
 // ── Intent Types ─────────────────────────────────────────────────────
 export const INTENT_TYPES = {
@@ -225,7 +225,7 @@ export function predictIntent(enemy, turnNumber, rngSeed) {
   if (!enemy) return null;
 
   // Use the actual AI selection for the primary prediction
-  const { action, abilityId } = selectEnemyAction(enemy, null, rngSeed);
+  const { action, abilityId } = selectTacticalAction(enemy, null, rngSeed, turnNumber);
   const intentType = classifyIntent(action, abilityId);
   const confidence = calculateConfidence(enemy, turnNumber, intentType);
   const damage = estimateDamage(enemy, intentType, abilityId);
