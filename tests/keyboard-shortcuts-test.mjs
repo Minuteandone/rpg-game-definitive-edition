@@ -297,27 +297,27 @@ describe('KeyboardShortcuts', () => {
       ks.destroy();
     });
 
-    it('should dispatch CONTINUE on Enter from battle-summary', () => {
+    it('should dispatch CONTINUE_AFTER_BATTLE on Enter from battle-summary', () => {
       const ks = createKeyboardShortcuts(getState, dispatch);
       currentState = { phase: 'battle-summary' };
       domMock.fireKeydown('Enter');
-      assert.deepStrictEqual(dispatched, [{ type: 'CONTINUE' }]);
+      assert.deepStrictEqual(dispatched, [{ type: 'CONTINUE_AFTER_BATTLE' }]);
       ks.destroy();
     });
 
-    it('should dispatch CONTINUE_VICTORY on Enter from victory', () => {
+    it('should dispatch CONTINUE_EXPLORING on Enter from victory', () => {
       const ks = createKeyboardShortcuts(getState, dispatch);
       currentState = { phase: 'victory' };
       domMock.fireKeydown('Enter');
-      assert.deepStrictEqual(dispatched, [{ type: 'CONTINUE_VICTORY' }]);
+      assert.deepStrictEqual(dispatched, [{ type: 'CONTINUE_EXPLORING' }]);
       ks.destroy();
     });
 
-    it('should dispatch RESTART on Enter from defeat', () => {
+    it('should dispatch TRY_AGAIN on Enter from defeat', () => {
       const ks = createKeyboardShortcuts(getState, dispatch);
       currentState = { phase: 'defeat' };
       domMock.fireKeydown('Enter');
-      assert.deepStrictEqual(dispatched, [{ type: 'RESTART' }]);
+      assert.deepStrictEqual(dispatched, [{ type: 'TRY_AGAIN' }]);
       ks.destroy();
     });
 

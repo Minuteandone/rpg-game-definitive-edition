@@ -137,17 +137,17 @@ export class KeyboardShortcuts {
     if (key === 'Enter') {
       if (phase === 'battle-summary') {
         event.preventDefault();
-        this._dispatch({ type: 'CONTINUE' });
+        this._dispatch({ type: 'CONTINUE_AFTER_BATTLE' });
         return;
       }
       if (phase === 'victory') {
         event.preventDefault();
-        this._dispatch({ type: 'CONTINUE_VICTORY' });
+        this._dispatch({ type: 'CONTINUE_EXPLORING' });
         return;
       }
       if (phase === 'defeat') {
         event.preventDefault();
-        this._dispatch({ type: 'RESTART' });
+        this._dispatch({ type: 'TRY_AGAIN' });
         return;
       }
       if (phase === 'fled') {
@@ -157,7 +157,7 @@ export class KeyboardShortcuts {
       }
       if (phase === 'level-up' && state.levelUpState) {
         event.preventDefault();
-        this._dispatch({ type: 'CONTINUE_LEVEL_UP' });
+        this._dispatch({ type: 'LEVEL_UP_CONTINUE' });
         return;
       }
     }
