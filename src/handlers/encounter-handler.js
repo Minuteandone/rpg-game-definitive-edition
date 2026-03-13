@@ -52,8 +52,13 @@ function mapRoomToLocationType(roomId) {
 
 /**
  * Get current room ID from state
+ * Supports both coordinate-based (roomRow/roomCol) and direct (currentRoom) lookups
  */
 function getCurrentRoomId(state) {
+  // Direct room ID takes priority if set
+  if (state.world?.currentRoom) {
+    return state.world.currentRoom;
+  }
   const roomRow = state.world?.roomRow ?? 1;
   const roomCol = state.world?.roomCol ?? 1;
   return getRoomIdFromCoords(roomRow, roomCol);
