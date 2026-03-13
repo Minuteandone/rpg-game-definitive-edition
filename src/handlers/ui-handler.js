@@ -24,7 +24,7 @@ import { clearFloor as clearDungeonFloor, TOTAL_FLOORS } from '../dungeon-floors
 import { handleProvisionAction } from './provisions-handler.js';
 import { BESTIARY_FILTER_DEFAULT, BESTIARY_SORT_DEFAULT } from '../bestiary-ui.js';
 import { completeTutorialStep, dismissCurrentHint, showHint, createTutorialState, resetTutorial } from '../tutorial.js';
-import { getAllStandings, modifyReputation, getFactionStanding, claimReputationReward } from '../faction-reputation-system.js';
+import { getAllStandings, modifyReputation, getFactionStanding, claimReward } from '../faction-reputation-system.js';
 import { renderReputationPanel } from '../faction-reputation-system-ui.js';
 import { createGuild, addMember, removeMember, changeMemberRank, depositGold, withdrawGold, unlockPerk, disbandGuild, getGuildStats } from '../guild-system.js';
 import { renderGuildPanel, renderCreateGuildForm, renderGuildBrowser, renderGuildHud } from '../guild-system-ui.js';
@@ -509,7 +509,7 @@ export function handleUIAction(state, action) {
 
   if (type === 'CLAIM_FACTION_REWARD') {
     if (!action.factionId || !action.level) return null;
-    const result = claimReputationReward(state.factionReputation, action.factionId, action.level);
+    const result = claimReward(state.factionReputation, action.factionId, action.level);
     if (result.error) return null;
     return { ...state, factionReputation: result.state };
   }
