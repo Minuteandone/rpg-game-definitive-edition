@@ -8,6 +8,7 @@ import { characters } from './data/characters.js';
 import { getEncounter, getEnemy } from './data/enemies.js';
 import { DEFAULT_DIFFICULTY, applyDifficultyToEnemyHp } from './difficulty.js';
 import { createReputationState } from './faction-reputation-system.js';
+import { createGuildSystemState } from './guild-system.js';
 import { createWorldState } from './map.js';
 import { createMomentumState } from './momentum.js';
 import { createNPCRelationshipManager } from './npc-relationships.js';
@@ -58,6 +59,7 @@ export function initialState() {
     momentumState: createMomentumState(),
     comboState: createComboState(),
     factionReputation: createReputationState(),
+    guildSystemState: createGuildSystemState(),
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
   };
@@ -121,6 +123,7 @@ export function initialStateWithClass(classId, characterName = '', difficulty = 
     momentumState: createMomentumState(),
     comboState: createComboState(),
     factionReputation: createReputationState(),
+    guildSystemState: createGuildSystemState(),
     ...createCompanionState(),
     npcRelationshipManager: createNPCRelationshipManager(),
   };

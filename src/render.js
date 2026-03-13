@@ -50,6 +50,7 @@ import { renderVictoryScreen, renderVictoryActions, getVictoryScreenStyles } fro
 import { DIFFICULTY_LEVELS, DIFFICULTY_NAMES, DIFFICULTY_DESCRIPTIONS } from './difficulty.js';
 import { renderMomentumGauge, renderOverdriveButton, getMomentumStyles } from './momentum-ui.js';
 import { renderComboDisplay } from './combo-system-ui.js';
+import { renderGuildPanel, renderCreateGuildForm, renderGuildBrowser, renderGuildHud } from './guild-system-ui.js';
 
 /** Track previous log for floating text diff */
 let _previousLog = [];
@@ -1648,7 +1649,168 @@ if (state.phase === 'achievements') {
     return;
   }
 
-    if (state.phase === 'bestiary') {
+  if (state.phase === 'guilds') {
+    const guildState = state.guildSystemState || {};
+    const currentGuild = guildState.currentGuild;
+    const guilds = guildState.guilds || [];
+    let guildView = currentGuild ? 'panel' : 'create';
+    let activeGuildTab = 'members';
+    let guildSearch = '';
+
+    const gameContent = document.getElementById('game-content');
+
+    const renderGuildView = () => {
+      const publicGuilds = guilds.filter(g => g?.settings?.isPublic !== false);
+      const searchTerm = guildSearch.trim().toLowerCase();
+      const visibleGuilds = searchTerm
+        ? publicGuilds.filter(g =>
+            g.name?.toLowerCase().includes(searchTerm)
+            || g.tag?.toLowerCase().includes(searchTerm)
+          )
+        : publicGuilds;
+
+      const innerContent = guildView === 'panel' && currentGuild
+        ? renderGuildPanel(currentGuild, state.player?.id, { showTabs: true, activeTab: activeGuildTab })
+        : guildView === 'browser'
+          ? renderGuildBrowser(visibleGuilds, { search: guildSearch })
+          : renderCreateGuildForm(500);
+
+      const guildHtml = `
+        <div class="guilds-panel">
+          <h2>Guild System</h2>
+          ${currentGuild ? renderGuildHud(currentGuild) : ''}
+          ${innerContent}
+        </div>
+      `;
+
+      if (gameContent) {
+        gameContent.innerHTML = guildHtml;
+        hud.innerHTML = '';
+      } else {
+        hud.innerHTML = guildHtml;
+      }
+
+      wireGuildHandlers();
+    };
+
+    const wireGuildHandlers = () => {
+      const root = gameContent || hud;
+      if (!root) return;
+
+      root.querySelectorAll('[data-tab]').forEach(btn => {
+        btn.onclick = () => {
+          activeGuildTab = btn.dataset.tab || 'members';
+          guildView = 'panel';
+          renderGuildView();
+        };
+      });
+
+      const confirmCreateBtn = root.querySelector('[data-action="confirm-create"]');
+      if (confirmCreateBtn) {
+        confirmCreateBtn.onclick = () => {
+          const nameInput = root.querySelector('#new-guild-name');
+          const tagInput = root.querySelector('#new-guild-tag');
+          const descInput = root.querySelector('#new-guild-desc');
+          const name = nameInput?.value?.trim() || '';
+          const tag = tagInput?.value?.trim() || '';
+          const description = descInput?.value?.trim() || '';
+          dispatch({ type: 'CREATE_GUILD', name, tag, description, creationCost: 500 });
+        };
+      }
+
+      const cancelCreateBtn = root.querySelector('[data-action="cancel-create"]');
+      if (cancelCreateBtn) {
+        cancelCreateBtn.onclick = () => dispatch({ type: 'CLOSE_GUILDS' });
+      }
+
+      const browseBtn = root.querySelector('[data-action="browse-guilds"]');
+      if (browseBtn) {
+        browseBtn.onclick = () => {
+          guildView = 'browser';
+          renderGuildView();
+        };
+      }
+
+      const createBtn = root.querySelector('[data-action="create-guild"]');
+      if (createBtn) {
+        createBtn.onclick = () => {
+          guildView = 'create';
+          renderGuildView();
+        };
+      }
+
+      const closeBrowserBtn = root.querySelector('[data-action="close-browser"]');
+      if (closeBrowserBtn) {
+        closeBrowserBtn.onclick = () => {
+          guildView = currentGuild ? 'panel' : 'create';
+          guildSearch = '';
+          renderGuildView();
+        };
+      }
+
+      const searchInput = root.querySelector('#guild-search');
+      if (searchInput) {
+        searchInput.oninput = () => {
+          guildSearch = searchInput.value || '';
+          renderGuildView();
+        };
+      }
+
+      root.querySelectorAll('[data-action="request-join"]').forEach(btn => {
+        btn.onclick = () => {
+          const guildId = btn.dataset.guildId;
+          if (guildId) dispatch({ type: 'JOIN_GUILD', guildId });
+        };
+      });
+
+      root.querySelectorAll('[data-action="deposit"]').forEach(btn => {
+        btn.onclick = () => {
+          const amountStr = prompt('How much gold would you like to deposit?', '0');
+          const amount = Number(amountStr);
+          if (Number.isFinite(amount) && amount > 0) {
+            dispatch({ type: 'GUILD_DEPOSIT', amount });
+          }
+        };
+      });
+
+      root.querySelectorAll('[data-action="withdraw"]').forEach(btn => {
+        btn.onclick = () => {
+          const amountStr = prompt('How much gold would you like to withdraw?', '0');
+          const amount = Number(amountStr);
+          if (Number.isFinite(amount) && amount > 0) {
+            dispatch({ type: 'GUILD_WITHDRAW', amount });
+          }
+        };
+      });
+
+      root.querySelectorAll('[data-action="unlock-perk"]').forEach(btn => {
+        btn.onclick = () => {
+          const perkId = btn.closest('[data-perk-id]')?.dataset.perkId;
+          if (perkId) dispatch({ type: 'UNLOCK_PERK', perkId });
+        };
+      });
+    };
+
+    actions.innerHTML = `
+      <div class="buttons">
+        <button id="btnCloseGuilds">Close</button>
+        ${currentGuild ? '<button id="btnLeaveGuild">Leave Guild</button>' : ''}
+      </div>
+    `;
+
+    const closeGuildsBtn = document.getElementById('btnCloseGuilds');
+    if (closeGuildsBtn) closeGuildsBtn.onclick = () => dispatch({ type: 'CLOSE_GUILDS' });
+    const leaveGuildBtn = document.getElementById('btnLeaveGuild');
+    if (leaveGuildBtn) leaveGuildBtn.onclick = () => dispatch({ type: 'LEAVE_GUILD' });
+
+    renderGuildView();
+
+    log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
+    finalizeRender();
+    return;
+  }
+
+  if (state.phase === 'bestiary') {
     hud.innerHTML = renderBestiaryPanel(state);
     actions.innerHTML = '<div class="buttons"><button id="btnCloseBestiary">Close Bestiary</button></div>';
     // Wire close button

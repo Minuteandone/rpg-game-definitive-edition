@@ -25,6 +25,8 @@ import { BESTIARY_FILTER_DEFAULT, BESTIARY_SORT_DEFAULT } from '../bestiary-ui.j
 import { completeTutorialStep, dismissCurrentHint, showHint, createTutorialState, resetTutorial } from '../tutorial.js';
 import { getAllStandings, modifyReputation, getFactionStanding, claimReputationReward } from '../faction-reputation-system.js';
 import { renderReputationPanel } from '../faction-reputation-system-ui.js';
+import { createGuild, addMember, removeMember, changeMemberRank, depositGold, withdrawGold, unlockPerk, disbandGuild, getGuildStats } from '../guild-system.js';
+import { renderGuildPanel, renderCreateGuildForm, renderGuildBrowser, renderGuildHud } from '../guild-system-ui.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -509,6 +511,145 @@ export function handleUIAction(state, action) {
     const result = claimReputationReward(state.factionReputation, action.factionId, action.level);
     if (result.error) return null;
     return { ...state, factionReputation: result.state };
+  }
+
+  // Guilds
+  if (type === 'OPEN_GUILDS') {
+    if (isPreAdventure) return null;
+    return { ...state, phase: 'guilds', previousPhase: state.phase };
+  }
+
+  if (type === 'CLOSE_GUILDS') {
+    if (state.phase !== 'guilds') return null;
+    return { ...state, phase: state.previousPhase || 'exploration' };
+  }
+
+  if (type === 'CREATE_GUILD') {
+    const guildSystemState = state.guildSystemState || {};
+    const guilds = guildSystemState.guilds || [];
+    const result = createGuild(action.name, state.player, {});
+    if (result.error) return pushLog(state, result.error);
+    const updatedPlayer = typeof result.cost === 'number'
+      ? { ...state.player, gold: Math.max(0, (state.player.gold || 0) - result.cost) }
+      : state.player;
+    const nextGuildState = {
+      ...guildSystemState,
+      guilds: [...guilds, result.guild],
+      currentGuild: result.guild,
+    };
+    let next = { ...state, player: updatedPlayer, guildSystemState: nextGuildState };
+    next = pushLog(next, `You founded the guild ${result.guild.name}.`);
+    return next;
+  }
+
+  if (type === 'JOIN_GUILD') {
+    const guildSystemState = state.guildSystemState || {};
+    const guilds = guildSystemState.guilds || [];
+    const targetGuild = guilds.find(g => g.id === action.guildId);
+    if (!targetGuild) return pushLog(state, 'Guild not found.');
+    const result = addMember(targetGuild, state.player, state.player.id);
+    if (result.error) return pushLog(state, result.error);
+    const updatedGuilds = guilds.map(g => g.id === targetGuild.id ? result.guild : g);
+    const nextGuildState = { ...guildSystemState, guilds: updatedGuilds, currentGuild: result.guild };
+    let next = { ...state, guildSystemState: nextGuildState };
+    next = pushLog(next, `You joined ${result.guild.name}.`);
+    return next;
+  }
+
+  if (type === 'LEAVE_GUILD') {
+    const guildSystemState = state.guildSystemState || {};
+    const guilds = guildSystemState.guilds || [];
+    const activeGuild = (guildSystemState.currentGuild && guilds.find(g => g.id === guildSystemState.currentGuild.id))
+      || guilds.find(g => g.members?.some(m => m.id === state.player.id));
+    if (!activeGuild) return pushLog(state, 'You are not in a guild.');
+    const member = activeGuild.members.find(m => m.id === state.player.id);
+    if (!member) return pushLog(state, 'You are not in a guild.');
+    if (member.rank === 'leader') {
+      return pushLog(state, 'Guild leaders must disband the guild to leave.');
+    }
+    const removerId = activeGuild.members.find(m => m.rank === 'leader')?.id || state.player.id;
+    const result = removeMember(activeGuild, state.player.id, removerId);
+    if (result.error) return pushLog(state, result.error);
+    const updatedGuilds = guilds.map(g => g.id === activeGuild.id ? result.guild : g);
+    const nextGuildState = {
+      ...guildSystemState,
+      guilds: updatedGuilds,
+      currentGuild: guildSystemState.currentGuild?.id === activeGuild.id ? null : guildSystemState.currentGuild
+    };
+    let next = { ...state, guildSystemState: nextGuildState };
+    next = pushLog(next, `You left ${activeGuild.name}.`);
+    return next;
+  }
+
+  if (type === 'GUILD_DEPOSIT') {
+    const guildSystemState = state.guildSystemState || {};
+    const guilds = guildSystemState.guilds || [];
+    const activeGuild = (guildSystemState.currentGuild && guilds.find(g => g.id === guildSystemState.currentGuild.id))
+      || guilds.find(g => g.members?.some(m => m.id === state.player.id));
+    if (!activeGuild) return pushLog(state, 'You are not in a guild.');
+    const amount = Number(action.amount) || 0;
+    if (amount <= 0) return pushLog(state, 'Invalid deposit amount.');
+    const playerGold = state.player.gold ?? 0;
+    if (playerGold < amount) return pushLog(state, 'Not enough gold to deposit.');
+    const result = depositGold(activeGuild, state.player.id, amount);
+    if (result.error) return pushLog(state, result.error);
+    const updatedGuilds = guilds.map(g => g.id === activeGuild.id ? result.guild : g);
+    const nextGuildState = {
+      ...guildSystemState,
+      guilds: updatedGuilds,
+      currentGuild: result.guild,
+    };
+    let next = {
+      ...state,
+      player: { ...state.player, gold: playerGold - amount },
+      guildSystemState: nextGuildState,
+    };
+    next = pushLog(next, `Deposited ${amount} gold into the guild bank.`);
+    return next;
+  }
+
+  if (type === 'GUILD_WITHDRAW') {
+    const guildSystemState = state.guildSystemState || {};
+    const guilds = guildSystemState.guilds || [];
+    const activeGuild = (guildSystemState.currentGuild && guilds.find(g => g.id === guildSystemState.currentGuild.id))
+      || guilds.find(g => g.members?.some(m => m.id === state.player.id));
+    if (!activeGuild) return pushLog(state, 'You are not in a guild.');
+    const amount = Number(action.amount) || 0;
+    if (amount <= 0) return pushLog(state, 'Invalid withdrawal amount.');
+    const result = withdrawGold(activeGuild, state.player.id, amount);
+    if (result.error) return pushLog(state, result.error);
+    const updatedGuilds = guilds.map(g => g.id === activeGuild.id ? result.guild : g);
+    const nextGuildState = {
+      ...guildSystemState,
+      guilds: updatedGuilds,
+      currentGuild: result.guild,
+    };
+    let next = {
+      ...state,
+      player: { ...state.player, gold: (state.player.gold || 0) + amount },
+      guildSystemState: nextGuildState,
+    };
+    next = pushLog(next, `Withdrew ${amount} gold from the guild bank.`);
+    return next;
+  }
+
+  if (type === 'UNLOCK_PERK') {
+    const guildSystemState = state.guildSystemState || {};
+    const guilds = guildSystemState.guilds || [];
+    const activeGuild = (guildSystemState.currentGuild && guilds.find(g => g.id === guildSystemState.currentGuild.id))
+      || guilds.find(g => g.members?.some(m => m.id === state.player.id));
+    if (!activeGuild) return pushLog(state, 'You are not in a guild.');
+    const result = unlockPerk(activeGuild, action.perkId, state.player.id);
+    if (result.error) return pushLog(state, result.error);
+    const updatedGuilds = guilds.map(g => g.id === activeGuild.id ? result.guild : g);
+    const nextGuildState = {
+      ...guildSystemState,
+      guilds: updatedGuilds,
+      currentGuild: result.guild,
+    };
+    let next = { ...state, guildSystemState: nextGuildState };
+    next = pushLog(next, `Unlocked guild perk: ${result.perk?.name || action.perkId}.`);
+    return next;
   }
 
   if (type === 'RECRUIT_COMPANION') {
