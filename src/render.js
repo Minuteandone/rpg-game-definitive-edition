@@ -1991,14 +1991,16 @@ if (state.phase === 'achievements') {
       document.head.appendChild(styleEl);
     }
 
+    // Check if there's an active tournament - show tournament view instead of arena panel
     const activeTournamentId = state.arenaState?.activeTournament;
     const activeTournamentData = activeTournamentId ? state.arenaState?.tournaments?.[activeTournamentId] : null;
     if (activeTournamentData) {
       hud.innerHTML = renderActiveTournament(activeTournamentData);
+      actions.innerHTML = '<div class="buttons"><button id="btnCloseArena">Back to Arena</button></div>';
     } else {
       hud.innerHTML = renderArenaPanel(state.arenaState, { showQuickMatch: true, showTournaments: true });
+      actions.innerHTML = '<div class="buttons"><button id="btnArenaQuickMatch">Quick Match ⚔️</button><button id="btnArenaTournament">Tournaments 🏆</button><button id="btnCloseArena">Close</button></div>';
     }
-    actions.innerHTML = '<div class="buttons"><button id="btnArenaQuickMatch">Quick Match ⚔️</button><button id="btnArenaTournament">Tournaments 🏆</button><button id="btnCloseArena">Close</button></div>';
 
     const quickMatchBtn = document.getElementById('btnArenaQuickMatch');
     if (quickMatchBtn) quickMatchBtn.onclick = () => dispatch({ type: 'START_ARENA_MATCH' });
@@ -2018,6 +2020,12 @@ if (state.phase === 'achievements') {
     });
     hud.querySelectorAll('[data-action="forfeit"]').forEach(btn => {
       btn.onclick = () => dispatch({ type: 'FORFEIT_TOURNAMENT' });
+    });
+    hud.querySelectorAll('[data-action="claim-rewards"]').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'CLAIM_TOURNAMENT_REWARDS' });
+    });
+    hud.querySelectorAll('[data-action="leave-tournament"]').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'LEAVE_TOURNAMENT' });
     });
 
     log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');

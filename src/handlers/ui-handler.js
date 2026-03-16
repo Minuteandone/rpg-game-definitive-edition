@@ -30,7 +30,7 @@ import { getAllStandings, modifyReputation, getFactionStanding, claimReward } fr
 import { renderReputationPanel } from '../faction-reputation-system-ui.js';
 import { createGuild, addMember, removeMember, changeMemberRank, depositGold, withdrawGold, unlockPerk, disbandGuild, getGuildStats } from '../guild-system.js';
 import { renderGuildPanel, renderCreateGuildForm, renderGuildBrowser, renderGuildHud } from '../guild-system-ui.js';
-import { processMatchResult, createTournament, recordTournamentMatchResult, getTournamentRewards, resetSeason, generateOpponent, getNextPlayerMatch } from '../arena-tournament-system.js';
+import { processMatchResult, createTournament, recordTournamentMatchResult, getTournamentRewards, resetSeason, generateOpponent, getNextPlayerMatch, TOURNAMENTS } from '../arena-tournament-system.js';
 import { dismissSporeling } from '../sporeling-integration.js';
 
 function getRoomDescription(worldState) {
@@ -696,6 +696,47 @@ export function handleUIAction(state, action) {
       activeTournament: null
     };
     return pushLog({ ...state, arenaState }, 'You forfeited the tournament.');
+  }
+
+  if (type === 'CLAIM_TOURNAMENT_REWARDS') {
+    const activeId = state.arenaState?.activeTournament;
+    const activeTournament = activeId ? state.arenaState.tournaments?.[activeId] : null;
+    if (!activeTournament || activeTournament.status !== 'completed') return null;
+
+    // Calculate rewards based on tournament template and player's placement
+    const templateId = activeTournament.templateId || activeId;
+    const template = TOURNAMENTS[templateId] || {};
+
+    // Determine placement based on playerStatus
+    let placement = 'third'; // default consolation
+    if (activeTournament.playerStatus === 'champion' || activeTournament.winner?.isPlayer) {
+      placement = 'first';
+    } else if (activeTournament.playerPlacement === 2) {
+      placement = 'second';
+    }
+
+    const rewards = template.rewards?.[placement] || { gold: 50, xp: 25 };
+
+    const updatedPlayer = {
+      ...state.player,
+      gold: (state.player.gold || 0) + (rewards.gold || 0),
+      xp: (state.player.xp || 0) + (rewards.xp || 0)
+    };
+
+    const arenaState = {
+      ...state.arenaState,
+      activeTournament: null
+    };
+
+    return pushLog({ ...state, player: updatedPlayer, arenaState }, `You claimed tournament rewards: ${rewards.gold || 0} gold, ${rewards.xp || 0} XP!`);
+  }
+
+  if (type === 'LEAVE_TOURNAMENT') {
+    const arenaState = {
+      ...state.arenaState,
+      activeTournament: null
+    };
+    return pushLog({ ...state, arenaState }, 'You left the tournament.');
   }
 
   // Guilds
