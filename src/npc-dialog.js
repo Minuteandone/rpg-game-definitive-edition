@@ -394,6 +394,15 @@ function getDialogProgress(dialogState) {
   };
 }
 
+
+function isLastDialogLine(dialogState) {
+  if (dialogState.done) return true;
+  if (!dialogState.lines || dialogState.lines.length === 0) return true;
+  const isLastLine = dialogState.lineIndex + 1 >= dialogState.lines.length;
+  const isLastSection = dialogState.dialogIndex + 1 >= dialogState.dialogIds.length;
+  return isLastLine && isLastSection;
+}
+
 export {
   ROOM_NPCS,
   DIALOG_LINES,
@@ -405,4 +414,5 @@ export {
   advanceDialog,
   getCurrentDialogLine,
   getDialogProgress,
+  isLastDialogLine,
 };

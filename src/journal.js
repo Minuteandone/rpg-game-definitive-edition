@@ -44,13 +44,27 @@ export function initializeJournal(state) {
   return state;
 }
 
+function getWorldLocationName(state) {
+  const ROOM_NAMES = [
+    ['Northwest Grove', 'Northern Path', 'Northeast Ridge'],
+    ['Western Crossing', 'Village Square', 'Eastern Fields'],
+    ['Southwest Marsh', 'Southern Road', 'Southeast Dock']
+  ];
+  const row = state.world?.roomRow;
+  const col = state.world?.roomCol;
+  if (row !== undefined && col !== undefined && ROOM_NAMES[row]?.[col]) {
+    return ROOM_NAMES[row][col];
+  }
+  return null;
+}
+
 // Add entry to journal
 export function addJournalEntry(state, category, title, description, metadata = {}) {
   const journal = state.journal || { entries: [], unreadCount: 0, lastViewedTurn: 0 };
   
   const entry = createJournalEntry(category, title, description, {
     turn: state.turn || 0,
-    location: state.currentRoom || metadata.location || 'Unknown',
+    location: state.currentRoom || metadata.location || getWorldLocationName(state) || 'Unknown',
     isImportant: metadata.isImportant || false
   });
   

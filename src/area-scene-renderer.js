@@ -199,6 +199,7 @@ export function getAreaSceneStyles() {
     }
 
     .area-player-marker {
+      transition: left 0.3s ease-in-out, bottom 0.3s ease-in-out;
       position: absolute;
       font-size: 24px;
       z-index: 5;

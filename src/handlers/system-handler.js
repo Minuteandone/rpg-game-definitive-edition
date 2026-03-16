@@ -34,6 +34,7 @@ export function handleSystemAction(state, action) {
 
     return {
       ...baseState,
+      tutorialState: state.tutorialState || baseState.tutorialState,
       phase: 'background-select',
       log: [
         `You have chosen the path of the ${className}.`,
@@ -135,6 +136,7 @@ export function handleSystemAction(state, action) {
     return {
       phase: 'class-select',
       log: ['The adventure ends... but another awaits. Select your class.'],
+      tutorialState: state.tutorialState,
     };
   }
 
@@ -168,6 +170,7 @@ export function handleSystemAction(state, action) {
     return {
       phase: 'class-select',
       log: ['The hero\'s legend is complete. A new adventure begins.'],
+      tutorialState: state.tutorialState,
     };
   }
 

@@ -81,19 +81,21 @@ export function renderSaveSlotsList(slots, mode) {
   const saveBtnClass = mode === 'save' ? 'active-tab' : '';
   const loadBtnClass = mode === 'load' ? 'active-tab' : '';
   const cards = slots.map(s => renderSlotCard(s, mode)).join('\n');
-  return `<div class="save-slots-panel">
-    <div class="save-slots-header">
-      <h2>${title}</h2>
-      <div class="save-slots-tabs">
-        <button class="tab-btn ${saveBtnClass}" id="btnModeSave">&#x1F4BE; Save</button>
-        <button class="tab-btn ${loadBtnClass}" id="btnModeLoad">&#x1F4C2; Load</button>
+  return `<div class="save-slots-overlay">
+    <div class="save-slots-panel">
+      <div class="save-slots-header">
+        <h2>${title}</h2>
+        <div class="save-slots-tabs">
+          <button class="tab-btn ${saveBtnClass}" id="btnModeSave">&#x1F4BE; Save</button>
+          <button class="tab-btn ${loadBtnClass}" id="btnModeLoad">&#x1F4C2; Load</button>
+        </div>
       </div>
-    </div>
-    <div class="save-slots-list">
-      ${cards}
-    </div>
-    <div class="save-slots-footer">
-      <button id="btnCloseSaveSlots">Close</button>
+      <div class="save-slots-list">
+        ${cards}
+      </div>
+      <div class="save-slots-footer">
+        <button id="btnCloseSaveSlots">Close</button>
+      </div>
     </div>
   </div>`;
 }
@@ -104,13 +106,27 @@ export function renderSaveSlotsList(slots, mode) {
  */
 export function getSaveSlotsStyles() {
   return `
+    .save-slots-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
     .save-slots-panel {
       background: #1a1a2e;
       border: 2px solid #e94560;
       border-radius: 8px;
       padding: 16px;
+      max-height: 80vh;
+      overflow-y: auto;
+      width: 90%;
       max-width: 500px;
-      margin: 0 auto;
     }
     .save-slots-header {
       display: flex;

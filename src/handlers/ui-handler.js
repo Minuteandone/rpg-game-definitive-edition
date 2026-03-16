@@ -1017,6 +1017,7 @@ export function handleUIAction(state, action) {
 
   if (action.type === 'TUTORIAL_DISABLE') {
     if (!state.tutorialState) return null;
+    try { localStorage.setItem('aiVillageRpg_hintsEnabled', 'false'); } catch(e) {}
     return {
       ...state,
       tutorialState: {
@@ -1049,6 +1050,7 @@ export function handleUIAction(state, action) {
 
   if (action.type === 'TUTORIAL_REENABLE_HINTS') {
     if (!state.tutorialState) return null;
+    try { localStorage.setItem('aiVillageRpg_hintsEnabled', 'true'); } catch(e) {}
     return {
       ...state,
       tutorialState: {

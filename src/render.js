@@ -9,7 +9,7 @@ import { getCategorizedInventory, getEquipmentDisplay, getItemDetails, getEquipm
 import { getEffectiveCombatStats, getEquipmentBonusDisplay, hasEquipmentBonuses } from './combat/equipment-bonuses.js';
 import { getCurrentLevelUp, getStatDiffs, formatStatName, xpForNextLevel } from './level-up.js';
 import { formatAbilityName } from './specialization-ui.js';
-import { getNPCsInRoom, getCurrentDialogLine, getDialogProgress } from './npc-dialog.js';
+import { getNPCsInRoom, getCurrentDialogLine, getDialogProgress, isLastDialogLine } from './npc-dialog.js';
 import { getActiveQuestsSummary, getCompletedQuestsSummary, getAvailableQuestsInRoom } from './quest-integration.js';
 import { getAbilityDisplayInfo } from './combat/abilities.js';
 import { items as itemsData } from './data/items.js';
@@ -146,6 +146,13 @@ function hpLine(entity) {
   return `<span class="${status}">${entity.hp}</span> / ${entity.maxHp}`;
 }
 
+function mpLine(entity) {
+  if (!entity.maxMp || entity.maxMp <= 0) return null;
+  const pct = Math.round((entity.mp / entity.maxMp) * 100);
+  const status = pct <= 25 ? 'bad' : (pct >= 75 ? 'good' : '');
+  return '<span class="' + status + '">' + (entity.mp ?? 0) + '</span> / ' + entity.maxMp;
+}
+
 function esc(s) {
   return String(s)
     .replaceAll('&', '&amp;')
@@ -155,9 +162,37 @@ function esc(s) {
     .replaceAll("'", '&#39;');
 }
 
-function renderAchievementToasts(state, dispatch) {
-  const notifications = state.achievementNotifications || [];
-  if (notifications.length === 0) return;
+const _achievementToastQueue = [];
+const _achievementToastIdsInFlight = new Set();
+let _achievementToastShowing = false;
+
+const ACHIEVEMENT_TOAST_VISIBLE_MS = 2500;
+const ACHIEVEMENT_TOAST_FADE_MS = 450;
+const ACHIEVEMENT_TOAST_NEXT_DELAY_MS = 120;
+
+export function selectUniqueAchievementToastEntries(notifications, idsInFlight = new Set()) {
+  const selected = [];
+  const seenIds = new Set(idsInFlight);
+
+  for (const notif of notifications || []) {
+    const name = notif?.name ?? 'Achievement';
+    const id = notif?.id;
+    if (id != null) {
+      if (seenIds.has(id)) continue;
+      seenIds.add(id);
+    }
+    selected.push({ name, id });
+  }
+
+  return selected;
+}
+
+function showNextAchievementToast() {
+  if (_achievementToastShowing) return;
+  if (_achievementToastQueue.length === 0) return;
+
+  _achievementToastShowing = true;
+  const { name, id } = _achievementToastQueue.shift();
 
   let container = document.getElementById('achievement-toasts');
   if (!container) {
@@ -166,24 +201,43 @@ function renderAchievementToasts(state, dispatch) {
     document.body.appendChild(container);
   }
 
-  notifications.forEach((notif) => {
-    const toast = document.createElement('div');
-    toast.className = 'achievement-toast';
-    if (notif?.id != null) toast.dataset.id = String(notif.id);
-    const name = notif?.name ?? 'Achievement';
-    toast.innerHTML = `🏆 Achievement Unlocked! <strong>${esc(name)}</strong>`;
-    container.appendChild(toast);
+  const toast = document.createElement('div');
+  toast.className = 'achievement-toast';
+  if (id != null) toast.dataset.id = String(id);
+  toast.innerHTML = `🏆 Achievement Unlocked! <strong>${esc(name)}</strong>`;
+  container.appendChild(toast);
 
-    setTimeout(() => toast.classList.add('achievement-toast-hide'), 3500);
-    setTimeout(() => toast.remove(), 4000);
-  });
+  setTimeout(() => toast.classList.add('achievement-toast-hide'), ACHIEVEMENT_TOAST_VISIBLE_MS);
+  setTimeout(() => {
+    toast.remove();
+    if (id != null) _achievementToastIdsInFlight.delete(id);
+    _achievementToastShowing = false;
+    setTimeout(() => showNextAchievementToast(), ACHIEVEMENT_TOAST_NEXT_DELAY_MS);
+  }, ACHIEVEMENT_TOAST_VISIBLE_MS + ACHIEVEMENT_TOAST_FADE_MS);
+}
+
+function renderAchievementToasts(state, dispatch) {
+  const notifications = state.achievementNotifications || [];
+  if (notifications.length === 0) return;
+
+  const newEntries = selectUniqueAchievementToastEntries(notifications, _achievementToastIdsInFlight);
+  for (const entry of newEntries) {
+    _achievementToastQueue.push(entry);
+    if (entry.id != null) _achievementToastIdsInFlight.add(entry.id);
+  }
+
+  showNextAchievementToast();
 }
 
 function inventorySummary(player) {
   const inv = player?.inventory || {};
   const entries = Object.entries(inv)
     .filter(([, count]) => count > 0)
-    .map(([item, count]) => `<div>${esc(item)}</div><div><b>${count}</b></div>`)
+    .map(([itemId, count]) => {
+      const itemData = lookupItem(itemId);
+      const displayName = itemData ? itemData.name : itemId;
+      return `<div>${esc(displayName)}</div><div><b>${count}</b></div>`;
+    })
     .join('');
   const gold = player?.gold ?? 0;
   return entries + `<div>Gold</div><div><b>${gold}</b></div>`;
@@ -269,10 +323,12 @@ function summarizeBonuses(bonuses) {
   add('gold', bonuses.gold);
 
   if (bonuses.inventory && typeof bonuses.inventory === 'object') {
-    for (const [item, count] of Object.entries(bonuses.inventory)) {
+    for (const [itemId, count] of Object.entries(bonuses.inventory)) {
       if (typeof count === 'number' && count !== 0) {
         const sign = count > 0 ? '+' : '';
-        parts.push(`${sign}${count} ${item}`);
+        const itemData = lookupItem(itemId);
+        const displayName = itemData ? itemData.name : itemId;
+        parts.push(`${sign}${count} ${displayName}`);
       }
     }
   }
@@ -689,6 +745,7 @@ export function render(state, dispatch) {
           <div class="kv">
             <div>Class</div><div><b>${esc(state.player.classId ? state.player.classId[0].toUpperCase() + state.player.classId.slice(1) : 'Adventurer')}</b></div>
             <div>HP</div><div><b>${hpLine(state.player)}</b></div>
+            ${mpLine(state.player) !== null ? '<div>MP</div><div><b>' + mpLine(state.player) + '</b></div>' : ''}
             <div>Level</div><div><b>${state.player.level ?? 1}</b></div>
             <div>XP</div><div><b>${state.player.xp ?? 0}</b></div>
           </div>
@@ -997,7 +1054,11 @@ export function render(state, dispatch) {
     const lootHtml = lootedItems.length > 0
       ? lootedItems.map(item => {
           const isString = typeof item === 'string';
-          const name = isString ? item : (item.name ?? item.itemId ?? 'Item');
+          const itemId = isString ? item : (item.itemId ?? null);
+          const lookupData = itemId ? lookupItem(itemId) : null;
+          const name = isString
+            ? (lookupData ? lookupData.name : item)
+            : (item.name ?? (lookupData ? lookupData.name : item.itemId) ?? 'Item');
           const rarity = isString ? null : (item.rarity ?? null);
           const rarityKey = typeof rarity === 'string' ? rarity : null;
           const color = getRarityMeta(rarityKey).color;
@@ -1270,6 +1331,9 @@ if (state.phase === 'achievements') {
 
     log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
+    }
     return;
   }
 
@@ -1448,7 +1512,8 @@ if (state.phase === 'achievements') {
     const eqRows = Object.entries(EQUIPMENT_SLOTS).map(([slot, label]) => {
       const itemId = equipment[slot];
       const detail = itemId ? getItemDetails(itemId) : null;
-      const itemName = detail ? detail.name : (itemId || '—');
+      const lookupData = itemId ? lookupItem(itemId) : null;
+      const itemName = detail ? detail.name : (lookupData ? lookupData.name : (itemId || '—'));
       const rarityKey = detail && typeof detail.rarity === 'string' ? detail.rarity : null;
       const rarityColor = getRarityMeta(rarityKey).color;
       const rarityEmoji = (() => {
@@ -1488,7 +1553,7 @@ if (state.phase === 'achievements') {
       : '<div><i>No bonuses</i></div><div></div>';
 
     // Build inventory items list HTML with sort & filter
-    const allItemsRaw = [...categorized.consumables, ...categorized.weapons, ...categorized.armors, ...categorized.accessories, ...categorized.unknown];
+    const allItemsRaw = [...categorized.consumables, ...categorized.weapons, ...categorized.armors, ...categorized.accessories, ...(categorized.materials || []), ...categorized.unknown];
     const currentSort = invState.sortBy || SORT_MODES.TYPE;
     const currentFilter = invState.filterBy || FILTER_MODES.ALL;
     const allItems = filterAndSortItems(allItemsRaw, currentFilter, currentSort);
@@ -1771,6 +1836,7 @@ if (state.phase === 'achievements') {
   if (state.phase === 'dialog' && state.dialogState) {
     const ds = state.dialogState;
     const currentLine = getCurrentDialogLine(ds);
+    const isLastLine = isLastDialogLine(ds);
     const progress = getDialogProgress(ds);
     const isLastDialogPage = progress.current >= progress.total && progress.sectionCurrent >= progress.sectionTotal;
     const progressText = ds.lines.length > 0
@@ -1835,6 +1901,8 @@ if (state.phase === 'achievements') {
   if (state.phase === 'companions') {
     hud.innerHTML = renderCompanionPanel(state);
     actions.innerHTML = '<div class="buttons"><button id="btnCloseCompanions">Close</button></div>';
+    const headerCloseBtn = hud.querySelector('[data-action="CLOSE_COMPANIONS"]');
+    if (headerCloseBtn) headerCloseBtn.onclick = () => dispatch({ type: 'CLOSE_COMPANIONS' });
     const closeBtn = document.getElementById('btnCloseCompanions');
     if (closeBtn) closeBtn.onclick = () => dispatch({ type: 'CLOSE_COMPANIONS' });
     // Wire close button inside panel

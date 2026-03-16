@@ -11,6 +11,19 @@ const ADJECTIVES = [
   'Mystic',
 ];
 
+const MILD_ADJECTIVES = [
+  'Scrappy',
+  'Young',
+  'Sneaky',
+  'Hungry',
+  'Ragged',
+  'Wild',
+  'Stray',
+  'Grumpy',
+  'Wiry',
+  'Mangy',
+];
+
 const TITLES = [
   'of Doom',
   'the Swift',
@@ -24,13 +37,38 @@ const TITLES = [
   'of Legends',
 ];
 
-export function generateRandomName(baseName) {
+const MILD_TITLES = [
+  'of the Thicket',
+  'the Scrounger',
+  'from the Brambles',
+  'of the Ditch',
+  'the Pest',
+  'of the Roadside',
+  'the Nuisance',
+  'from the Hollow',
+  'the Trespasser',
+  'of the Mud',
+];
+
+// Enemies at encounter-table tiers 1-2 are considered low-tier
+const LOW_TIER_ENEMIES = new Set([
+  'slime', 'goblin', 'giant-spider', 'wolf', 'skeleton', 'bandit',
+]);
+
+export function generateRandomName(baseName, enemyId) {
   const name = typeof baseName === 'string' ? baseName.trim() : '';
   if (!name) {
     return 'Mysterious Foe';
   }
-  const adjective = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
-  const title = TITLES[Math.floor(Math.random() * TITLES.length)];
+  const isLowTier = LOW_TIER_ENEMIES.has(enemyId);
+  const adjPool = isLowTier ? MILD_ADJECTIVES : ADJECTIVES;
+  const titlePool = isLowTier ? MILD_TITLES : TITLES;
+  const adjective = adjPool[Math.floor(Math.random() * adjPool.length)];
+  if (isLowTier) {
+    // Low-tier: just adjective + name, no title
+    return `${adjective} ${name}`;
+  }
+  const title = titlePool[Math.floor(Math.random() * titlePool.length)];
   return `${adjective} ${name} ${title}`;
 }
 
@@ -765,7 +803,7 @@ export function getEnemy(id) {
   const copy = JSON.parse(JSON.stringify(enemy));
   return {
     ...copy,
-    displayName: generateProceduralName(copy.name),
+    displayName: generateProceduralName(copy.name, copy.id),
   };
 }
 

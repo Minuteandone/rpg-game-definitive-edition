@@ -143,6 +143,7 @@ if (IS_BROWSER) {
   }
 
   function dispatch(action) {
+    console.log('[DISPATCH]', action.type, 'direction:', action.direction, 'phase:', state.phase);
     if (action.type === 'OPEN_DAILY_CHALLENGES') {
       setState({ ...state, showDailyChallenges: true }, action);
       return;
@@ -189,10 +190,16 @@ if (IS_BROWSER) {
     }
 
     // Try each handler in order
-    const next = handleCombatAction(state, action) ||
-                 handleDungeonAction(state, action) ||
-                 handleEncounterAction(state, action) ||
-                 handleExplorationAction(state, action) ||
+    console.log('[DISPATCH] Trying handlers... phase:', state.phase, 'action:', JSON.stringify(action));
+    const combatResult = handleCombatAction(state, action);
+    console.log('[DISPATCH] handleCombatAction returned:', combatResult !== null ? 'non-null' : 'null');
+    const dungeonResult = !combatResult && handleDungeonAction(state, action);
+    console.log('[DISPATCH] handleDungeonAction returned:', dungeonResult !== null && dungeonResult !== false ? 'non-null' : 'null/false');
+    const encounterResult = !combatResult && !dungeonResult && handleEncounterAction(state, action);
+    console.log('[DISPATCH] handleEncounterAction returned:', encounterResult !== null && encounterResult !== false ? 'non-null' : 'null/false');
+    const explorationResult = !combatResult && !dungeonResult && !encounterResult && handleExplorationAction(state, action);
+    console.log('[DISPATCH] handleExplorationAction returned:', explorationResult !== null && explorationResult !== false ? 'non-null' : 'null/false');
+    const next = combatResult || dungeonResult || encounterResult || explorationResult ||
                  handleFastTravelAction(state, action) ||
                  handleSystemAction(state, action) ||
                  handleUIAction(state, action);

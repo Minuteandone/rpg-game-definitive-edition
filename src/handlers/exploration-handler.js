@@ -127,16 +127,20 @@ function applyQuestRelationshipEffects(nextState, completedQuests) {
 }
 
 export function handleExplorationAction(state, action) {
+  console.log('[EXPLORE-HANDLER] Called with phase:', state.phase, 'action:', action.type);
   // Check if phase is exploration (except maybe SEEK_ENCOUNTER which forces it? No, checks phase too)
-  if (state.phase !== 'exploration') return null;
+  if (state.phase !== 'exploration') { console.log('[EXPLORE-HANDLER] Rejected: phase is', state.phase, 'not exploration'); return null; }
 
   const type = action.type;
 
   if (type === 'EXPLORE') {
     const direction = action.direction;
+    console.log('[EXPLORE-HANDLER] EXPLORE direction:', direction, 'world:', state.world ? 'exists' : 'missing');
     if (!direction) return pushLog(state, 'Choose a direction to move.');
 
+    console.log('[EXPLORE-HANDLER] Calling movePlayer...');
     const result = movePlayer(state.world, direction);
+    console.log('[EXPLORE-HANDLER] movePlayer result:', JSON.stringify({moved: result.moved, transitioned: result.transitioned}));
     if (!result.moved) {
       return pushLog(state, `You cannot go ${direction}. The way is blocked.`);
     }
@@ -390,9 +394,12 @@ export function handleFastTravelAction(state, action) {
 
   if (type === 'OPEN_FAST_TRAVEL') {
     const { canTravel, reason } = canUseFastTravel(state);
-    if (!canTravel) {
+    const hasUnlockedDestinations = getUnlockedFastTravelDestinations(state.visitedRooms).length > 0;
+
+    if (!canTravel && hasUnlockedDestinations) {
       return pushLog(state, reason || 'Fast travel is not available right now.');
     }
+
     return { ...state, fastTravelModalOpen: true };
   }
 

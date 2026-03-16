@@ -23,6 +23,8 @@ export function renderTavernDicePanel(state) {
     html += `<div class="tavern-wager">`;
     html += `<p>Your Gold: ${state.player?.gold || 0}g</p>`;
     html += `<div class="buttons" style="margin-top:10px; display:flex; gap:10px;">`;
+    html += `<button data-action="TAVERN_START" data-wager="1">Wager 1g</button>`;
+    html += `<button data-action="TAVERN_START" data-wager="5">Wager 5g</button>`;
     html += `<button data-action="TAVERN_START" data-wager="10">Wager 10g</button>`;
     html += `<button data-action="TAVERN_START" data-wager="50">Wager 50g</button>`;
     html += `<button data-action="TAVERN_START" data-wager="100">Wager 100g</button>`;

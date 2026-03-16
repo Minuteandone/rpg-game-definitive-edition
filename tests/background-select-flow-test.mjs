@@ -30,3 +30,20 @@ test('background bonuses adjust gold values', () => {
 
   assert(afterBackground.player.gold === 15, 'wanderer background grants starting gold');
 });
+
+
+test('class selection preserves disabled tutorial hints', () => {
+  const start = {
+    phase: 'class-select',
+    log: [],
+    tutorialState: {
+      completedSteps: [],
+      currentHint: null,
+      hintsEnabled: false,
+    },
+  };
+
+  const afterClass = handleSystemAction(start, { type: 'SELECT_CLASS', classId: 'warrior' });
+
+  assert(afterClass.tutorialState.hintsEnabled === false, 'disabled hints should persist into background selection');
+});
