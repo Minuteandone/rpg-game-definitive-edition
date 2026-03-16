@@ -2108,12 +2108,17 @@ if (state.phase === 'achievements') {
   if (state.phase === 'bounty-board') {
     document.getElementById('hud').style.display = 'block';
     hud.innerHTML = renderBountyBoardPanel(state);
-    
+
     actions.innerHTML = '<div class="buttons"><button id="btnCloseBountyBoard">Leave Board</button></div>';
-    
+
     const closeBtn = document.getElementById('btnCloseBountyBoard');
     if (closeBtn) closeBtn.onclick = () => dispatch({ type: 'CLOSE_BOUNTY_BOARD' });
-    
+
+    // Wire bounty board action buttons
+    hud.querySelectorAll('button[data-action]').forEach(btn => {
+      btn.onclick = () => dispatch({ type: btn.dataset.action, id: btn.dataset.id });
+    });
+
     return;
   }
 
