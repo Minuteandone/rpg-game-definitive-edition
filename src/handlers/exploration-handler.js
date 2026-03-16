@@ -394,9 +394,12 @@ export function handleFastTravelAction(state, action) {
 
   if (type === 'OPEN_FAST_TRAVEL') {
     const { canTravel, reason } = canUseFastTravel(state);
-    if (!canTravel) {
+    const hasUnlockedDestinations = getUnlockedFastTravelDestinations(state.visitedRooms).length > 0;
+
+    if (!canTravel && hasUnlockedDestinations) {
       return pushLog(state, reason || 'Fast travel is not available right now.');
     }
+
     return { ...state, fastTravelModalOpen: true };
   }
 
