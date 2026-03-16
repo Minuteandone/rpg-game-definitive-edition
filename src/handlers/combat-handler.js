@@ -19,7 +19,7 @@ export function handleCombatAction(state, action) {
 
   let cs = state.combatStats || null;
   if (!cs && state.enemy) {
-    cs = createCombatStats(state.enemy?.name || 'Unknown Enemy', state.enemy?.isBoss || false);
+    cs = createCombatStats(state.enemy?.displayName ?? state.enemy?.name ?? 'Unknown Enemy', state.enemy?.isBoss || false);
   }
 
   const type = action.type;
@@ -152,7 +152,7 @@ export function handleCombatAction(state, action) {
 export function handleEnemyTurnLogic(state) {
   let cs = state.combatStats || null;
   if (!cs && state.enemy) {
-    cs = createCombatStats(state.enemy?.name || 'Unknown Enemy', state.enemy?.isBoss || false);
+    cs = createCombatStats(state.enemy?.displayName ?? state.enemy?.name ?? 'Unknown Enemy', state.enemy?.isBoss || false);
   }
   const hpBefore = state.player?.hp ?? 0;
   const next = enemyAct(state);
@@ -219,7 +219,17 @@ export function handleEnemyTurnLogic(state) {
 
 function finalizeCombatState(next, overrides = {}) {
   if (!next) return next;
-  return trackAchievements({ ...next, ...overrides });
+  const combined = { ...next, ...overrides };
+  if (combined.combatStats && (combined.phase === 'victory' || combined.phase === 'defeat')) {
+    finalizeCombatStats(
+      combined.combatStats,
+      combined.phase,
+      combined.player?.hp ?? 0,
+      combined.player?.maxHp ?? 100,
+    );
+    combined.combatStatsSummary = formatCombatStatsDisplay(combined.combatStats);
+  }
+  return trackAchievements(combined);
 }
 
 function applyCraftingMaterialDrops(state) {
