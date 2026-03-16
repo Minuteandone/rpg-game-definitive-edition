@@ -1,6 +1,18 @@
 import { pushLog } from './state.js';
 import { nextRng } from './combat.js';
 import { NPCS } from './data/npcs.js';
+import { getCurrentRoomId } from './minimap.js';
+
+// Map NPC building locations to their room-grid IDs
+const LOCATION_TO_ROOM = {
+  village_square: 'center',
+  rusty_anchor_inn: 'center',
+  blacksmith_shop: 'center',
+  healer_hut: 'center',
+  barracks: 'center',
+  alchemy_shop: 'center',
+  mage_tower: 'ne',
+};
 
 function getCompanionList(state) {
   return Array.isArray(state.companions) ? state.companions : [];
@@ -41,8 +53,10 @@ export function recruitCompanion(state, companionId) {
   if (companions.length >= maxCompanions) {
     return pushLog(state, 'Your party is full.');
   }
-  if (state.world?.currentRoom && state.world.currentRoom !== npc.location) {
-    return pushLog(state, `${npc.name} is not here.`);
+  const playerRoom = getCurrentRoomId(state.world);
+  const companionRoom = LOCATION_TO_ROOM[npc.location] || null;
+  if (playerRoom && companionRoom && playerRoom !== companionRoom) {
+    return pushLog(state, `${npc.name} is not here. Try looking in the ${npc.location.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')}.`);
   }
 
   const stats = npc.stats || {};
