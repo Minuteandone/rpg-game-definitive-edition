@@ -1762,6 +1762,10 @@ if (state.phase === 'achievements') {
     actions.innerHTML = '<div class="buttons"><button id="btnCloseCompanions">Close</button></div>';
     const closeBtn = document.getElementById('btnCloseCompanions');
     if (closeBtn) closeBtn.onclick = () => dispatch({ type: 'CLOSE_COMPANIONS' });
+    // Wire close button inside panel
+    hud.querySelectorAll('[data-action="CLOSE_COMPANIONS"]').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'CLOSE_COMPANIONS' });
+    });
     // Wire recruit buttons
     hud.querySelectorAll('[data-action="RECRUIT_COMPANION"]').forEach(btn => {
       btn.onclick = () => dispatch({ type: 'RECRUIT_COMPANION', companionId: btn.dataset.companionId });
