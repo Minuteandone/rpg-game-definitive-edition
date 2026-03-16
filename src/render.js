@@ -1979,6 +1979,12 @@ if (state.phase === 'achievements') {
     hud.querySelectorAll('[data-action="enter-tournament"]').forEach(btn => {
       btn.onclick = () => dispatch({ type: 'ENTER_TOURNAMENT', tournamentId: btn.dataset.tournamentId });
     });
+    hud.querySelectorAll('[data-action="next-match"]').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'NEXT_TOURNAMENT_MATCH' });
+    });
+    hud.querySelectorAll('[data-action="forfeit"]').forEach(btn => {
+      btn.onclick = () => dispatch({ type: 'FORFEIT_TOURNAMENT' });
+    });
 
     log.innerHTML = state.log.slice().reverse().map(line => formatLogEntryHtml(line)).join('');
     finalizeRender();

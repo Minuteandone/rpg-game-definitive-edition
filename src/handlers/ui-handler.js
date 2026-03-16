@@ -29,7 +29,7 @@ import { getAllStandings, modifyReputation, getFactionStanding, claimReward } fr
 import { renderReputationPanel } from '../faction-reputation-system-ui.js';
 import { createGuild, addMember, removeMember, changeMemberRank, depositGold, withdrawGold, unlockPerk, disbandGuild, getGuildStats } from '../guild-system.js';
 import { renderGuildPanel, renderCreateGuildForm, renderGuildBrowser, renderGuildHud } from '../guild-system-ui.js';
-import { processMatchResult, createTournament, recordTournamentMatchResult, getTournamentRewards, resetSeason, generateOpponent } from '../arena-tournament-system.js';
+import { processMatchResult, createTournament, recordTournamentMatchResult, getTournamentRewards, resetSeason, generateOpponent, getNextPlayerMatch } from '../arena-tournament-system.js';
 import { dismissSporeling } from '../sporeling-integration.js';
 
 function getRoomDescription(worldState) {
@@ -619,6 +619,66 @@ export function handleUIAction(state, action) {
     if (!state.arenaState) return null;
     const arenaState = resetSeason(state.arenaState);
     return { ...state, arenaState };
+  }
+
+  if (type === 'NEXT_TOURNAMENT_MATCH') {
+    const activeId = state.arenaState?.activeTournament;
+    const activeTournament = activeId ? state.arenaState.tournaments?.[activeId] : null;
+    if (!activeTournament || activeTournament.playerStatus !== 'active') return null;
+
+    const nextMatch = getNextPlayerMatch(activeTournament);
+    if (!nextMatch) return pushLog(state, 'No matches available.');
+
+    // Determine player and opponent
+    const isPlayer1 = nextMatch.participant1?.isPlayer;
+    const player = isPlayer1 ? nextMatch.participant1 : nextMatch.participant2;
+    const opponent = isPlayer1 ? nextMatch.participant2 : nextMatch.participant1;
+    if (!player || !opponent) return null;
+
+    // Simulate match result
+    const playerLevel = state.player.level || 1;
+    const opponentLevel = opponent.level || playerLevel;
+    const levelDelta = playerLevel - opponentLevel;
+    const winChance = Math.min(0.85, Math.max(0.15, 0.5 + (levelDelta * 0.05)));
+    const result = Math.random() < winChance ? 'win' : 'loss';
+    const winnerId = result === 'win' ? player.id : opponent.id;
+
+    // Record result
+    const updatedTournament = recordTournamentMatchResult(activeTournament, nextMatch.id, winnerId);
+
+    const arenaState = {
+      ...state.arenaState,
+      tournaments: {
+        ...state.arenaState.tournaments,
+        [activeId]: updatedTournament
+      }
+    };
+    const next = { ...state, arenaState };
+    return pushLog(next, result === 'win'
+      ? `Tournament match victory against ${opponent.name || 'opponent'}!`
+      : `Tournament match defeat against ${opponent.name || 'opponent'}.`);
+  }
+
+  if (type === 'FORFEIT_TOURNAMENT') {
+    const activeId = state.arenaState?.activeTournament;
+    const activeTournament = activeId ? state.arenaState.tournaments?.[activeId] : null;
+    if (!activeTournament) return null;
+
+    const updatedTournament = {
+      ...activeTournament,
+      playerStatus: 'eliminated',
+      status: 'forfeited'
+    };
+
+    const arenaState = {
+      ...state.arenaState,
+      tournaments: {
+        ...state.arenaState.tournaments,
+        [activeId]: updatedTournament
+      },
+      activeTournament: null
+    };
+    return pushLog({ ...state, arenaState }, 'You forfeited the tournament.');
   }
 
   // Guilds
