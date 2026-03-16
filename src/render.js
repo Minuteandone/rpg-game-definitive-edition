@@ -1791,6 +1791,8 @@ if (state.phase === 'achievements') {
   if (state.phase === 'companions') {
     hud.innerHTML = renderCompanionPanel(state);
     actions.innerHTML = '<div class="buttons"><button id="btnCloseCompanions">Close</button></div>';
+    const headerCloseBtn = hud.querySelector('[data-action="CLOSE_COMPANIONS"]');
+    if (headerCloseBtn) headerCloseBtn.onclick = () => dispatch({ type: 'CLOSE_COMPANIONS' });
     const closeBtn = document.getElementById('btnCloseCompanions');
     if (closeBtn) closeBtn.onclick = () => dispatch({ type: 'CLOSE_COMPANIONS' });
     // Wire recruit buttons
