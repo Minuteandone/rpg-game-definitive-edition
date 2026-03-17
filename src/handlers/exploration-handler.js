@@ -187,8 +187,6 @@ export function handleExplorationAction(state, action) {
     if (result.transitioned) {
       next = pushLog(next, `You travel ${direction} and arrive at ${roomName}.`);
       next = logLocationDiscovery(next, roomName);
-    } else {
-      next = pushLog(next, `You move ${direction}.`);
     }
 
     let newWorldEvent = tickWorldEvent(state.worldEvent);
@@ -240,11 +238,13 @@ export function handleExplorationAction(state, action) {
       const reason = result.blocked === 'edge' ? 'The path ends here.' : 'Something blocks your way.';
       return pushLog(state, reason);
     }
-    const msg = result.transitioned && result.room
-      ? `You move ${direction} into ${result.room.name}.`
-      : `You move ${direction}.`;
-      
-    let next = pushLog({ ...state, world: result.worldState }, msg);
+    let next = { ...state, world: result.worldState };
+    if (result.transitioned) {
+      const msg = result.room
+        ? `You move ${direction} into ${result.room.name}.`
+        : `You move ${direction}.`;
+      next = pushLog(next, msg);
+    }
     
     if (result.transitioned) {
        next = {
