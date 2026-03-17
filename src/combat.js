@@ -186,6 +186,13 @@ function processTurnStart(state, actorKey) {
 
 function applyVictoryDefeat(state) {
   if (state.enemy.hp <= 0) {
+    if (state.isArenaMatch) {
+      return {
+        ...state,
+        phase: 'arena',
+        isArenaMatch: false
+      };
+    }
     const difficulty = state.difficulty ?? DEFAULT_DIFFICULTY;
     const xpGained = applyDifficultyToXpReward(state.enemy.xpReward ?? 0, difficulty);
     const baseGold = applyDifficultyToGoldReward(state.enemy.goldReward ?? 0, difficulty);
@@ -229,6 +236,14 @@ function applyVictoryDefeat(state) {
     state = autoReviveCompanionsAfterCombat(state);
   }
   if (state.player.hp <= 0) {
+    if (state.isArenaMatch) {
+      return {
+        ...state,
+        phase: 'arena',
+        isArenaMatch: false,
+        player: { ...state.player, hp: 1 } // prevent actual death
+      };
+    }
     state = { ...state, phase: 'defeat' };
     logDefeat();
     state = pushLog(state, `Defeat... You collapse.`);
