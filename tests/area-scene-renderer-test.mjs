@@ -71,7 +71,15 @@ describe('Area Scene Renderer', () => {
     const state = {
       phase: 'exploration',
       world: { roomRow: 1, roomCol: 1, x: 3, y: 2 },
-      worldData: { roomWidth: 10, roomHeight: 10 },
+      worldData: {
+        roomWidth: 4,
+        roomHeight: 4,
+        rooms: [
+          [null, null, null],
+          [null, { grid: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] }, null],
+          [null, null, null],
+        ],
+      },
     };
     const html = renderAreaScene(state);
     assert.ok(html.includes('area-player-marker'), 'Should have player marker');
