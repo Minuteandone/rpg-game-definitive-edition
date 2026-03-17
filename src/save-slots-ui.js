@@ -45,9 +45,9 @@ export function renderSlotCard(slot, mode) {
     return `<div class="save-slot-card" data-slot-index="${idx}">
       <div class="slot-header">Slot ${idx + 1}</div>
       <div class="slot-info">
-        <div class="slot-name">${name}</div>
-        <div class="slot-detail">Turn ${turn}</div>
-        <div class="slot-detail">${escHtml(date)}</div>
+        <div class="slot-name">${name} <span class="slot-meta" style="color:#aaa; font-size:0.85em; font-weight:normal;">(Lv ${slot.level || 1} ${escHtml(slot.class || 'Adventurer')})</span></div>
+        <div class="slot-detail">${escHtml(slot.location || 'Unknown Location')}</div>
+        <div class="slot-detail">Turn ${turn} &bull; ${escHtml(date)}</div>
       </div>
       <div class="slot-actions">
         ${actionBtn}

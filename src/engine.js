@@ -105,6 +105,9 @@ export function getSaveSlots() {
           exists: true,
           savedAt: data.savedAt || 'Unknown',
           playerName: data.player?.name || 'Unknown',
+          level: data.player?.level || data.player?.stats?.level || 1,
+          class: data.player?.classId || data.player?.class || 'Adventurer',
+          location: data.saveMetadata?.location || data.location || 'Unknown Location',
           turn: data.turn || 0
         });
       } catch {
