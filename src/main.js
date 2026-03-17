@@ -12,6 +12,7 @@ import { handleEncounterAction } from './handlers/encounter-handler.js';
 import { handleSystemAction } from './handlers/system-handler.js';
 import { handleUIAction } from './handlers/ui-handler.js';
 import { handleDungeonAction } from './handlers/dungeon-handler.js';
+import { handleProvisionAction } from './handlers/provisions-handler.js';
 import { handleStateTransitions } from './state-transitions.js';
 import { initAudio } from './audio-system.js';
 import { createTutorialState } from './tutorial.js';
@@ -200,6 +201,7 @@ if (IS_BROWSER) {
     const explorationResult = !combatResult && !dungeonResult && !encounterResult && handleExplorationAction(state, action);
     console.log('[DISPATCH] handleExplorationAction returned:', explorationResult !== null && explorationResult !== false ? 'non-null' : 'null/false');
     const next = combatResult || dungeonResult || encounterResult || explorationResult ||
+                 handleProvisionAction(state, action) ||
                  handleFastTravelAction(state, action) ||
                  handleSystemAction(state, action) ||
                  handleUIAction(state, action);
