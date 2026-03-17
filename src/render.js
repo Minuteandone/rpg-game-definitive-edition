@@ -1831,10 +1831,14 @@ if (state.phase === 'achievements') {
     `;
 
     const npcHasShop = hasShop(ds.npcId);
+    const isInnKeeper = ds.npcId === 'inn_keeper';
     actions.innerHTML = `
       <div class="buttons">
         ${(currentLine && !isLastLine) ? `<button id="btnDialogNext">Next ▶</button>` : ''}
         ${npcHasShop ? `<button id="btnViewShop">🛒 View Shop</button>` : ''}
+        ${isInnKeeper ? '<button id="btnInnRest">🛏️ Rest (20g)</button>' : ''}
+        ${isInnKeeper ? '<button id="btnInnFood">🍲 Food (10g)</button>' : ''}
+        ${isInnKeeper ? '<button id="btnInnRumors">🗣️ Rumors</button>' : ''}
         <button id="btnDialogClose">Farewell</button>
       </div>
     `;
@@ -1845,6 +1849,11 @@ if (state.phase === 'achievements') {
     document.getElementById('btnDialogClose').onclick = () => dispatch({ type: 'DIALOG_CLOSE' });
     if (npcHasShop) {
       document.getElementById('btnViewShop').onclick = () => dispatch({ type: 'VIEW_SHOP', npcId: ds.npcId });
+    }
+    if (isInnKeeper) {
+      document.getElementById('btnInnRest').onclick = () => dispatch({ type: 'INN_REST' });
+      document.getElementById('btnInnFood').onclick = () => dispatch({ type: 'INN_FOOD' });
+      document.getElementById('btnInnRumors').onclick = () => dispatch({ type: 'INN_RUMORS' });
     }
 
     log.innerHTML = state.log

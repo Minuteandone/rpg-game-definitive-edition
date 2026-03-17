@@ -330,6 +330,41 @@ export function handleUIAction(state, action) {
     return { ...rest, phase: returnPhase };
   }
 
+  if (type === 'INN_REST') {
+    if (state.player.gold >= 20) {
+      const next = {
+        ...state,
+        player: {
+          ...state.player,
+          gold: state.player.gold - 20,
+          hp: state.player.maxHp,
+          mp: state.player.maxMp,
+        },
+      };
+      return pushLog(next, 'You rest at the inn and restore all HP and MP. (-20g)');
+    }
+    return pushLog(state, 'Not enough gold to rest.');
+  }
+
+  if (type === 'INN_FOOD') {
+    if (state.player.gold >= 10) {
+      const next = {
+        ...state,
+        player: {
+          ...state.player,
+          gold: state.player.gold - 10,
+          hp: Math.min(state.player.maxHp, state.player.hp + 25),
+        },
+      };
+      return pushLog(next, 'You eat a hearty meal and restore 25 HP. (-10g)');
+    }
+    return pushLog(state, 'Not enough gold for food.');
+  }
+
+  if (type === 'INN_RUMORS') {
+    return pushLog(state, '"Folk say there\'s something stirring in the old mines. Strange lights at night..."');
+  }
+
   if (type === 'CLAIM_QUEST_REWARDS') {
     if (state.phase !== 'quest-reward') return null;
     const pendingRewards = state.pendingQuestRewards || [];
