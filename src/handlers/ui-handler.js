@@ -403,7 +403,7 @@ export function handleUIAction(state, action) {
       ...state,
       phase: 'crafting',
       previousPhase: state.phase,
-      craftingUI: { category: 'all', selectedRecipeId: null, message: null },
+      craftingUI: { selectedCategory: 'all', selectedRecipeId: null, lastMessage: null },
     };
   }
 
@@ -417,7 +417,7 @@ export function handleUIAction(state, action) {
     if (state.phase !== 'crafting') return null;
     return {
       ...state,
-      craftingUI: { ...state.craftingUI, category: action.category || 'all', selectedRecipeId: null, message: null },
+      craftingUI: { ...state.craftingUI, selectedCategory: action.category || 'all', selectedRecipeId: null, lastMessage: null },
     };
   }
 
@@ -425,7 +425,7 @@ export function handleUIAction(state, action) {
     if (state.phase !== 'crafting') return null;
     return {
       ...state,
-      craftingUI: { ...state.craftingUI, selectedRecipeId: action.recipeId || null, message: null },
+      craftingUI: { ...state.craftingUI, selectedRecipeId: action.recipeId || null, lastMessage: null },
     };
   }
 
@@ -440,7 +440,7 @@ export function handleUIAction(state, action) {
       crafting: state.crafting,
       player: { ...state.player },
       log: newLog,
-      craftingUI: { ...state.craftingUI, message: { text: result.message, success: result.success } },
+      craftingUI: { ...state.craftingUI, lastMessage: { text: result.message, success: result.success } },
     };
   }
 
