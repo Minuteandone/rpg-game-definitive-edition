@@ -49,6 +49,7 @@ export function renderBountyBoardPanel(state) {
   
   html += `<div class="buttons" style="margin-top: 20px;">`;
   if (hasActive) {
+      html += `<span style="color: #FF8C00; font-size: 0.85em; margin-bottom: 8px; display: block; font-style: italic;">⚠️ Complete your active bounty before refreshing.</span>`;
       html += `<button data-action="REFRESH_BOUNTIES" disabled title="Complete your active bounty first">Refresh Bounties</button>`;
   } else {
       html += `<button data-action="REFRESH_BOUNTIES">Refresh Bounties</button>`;
