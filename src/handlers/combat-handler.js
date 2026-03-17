@@ -6,6 +6,7 @@ import * as achievements from '../achievements.js';
 import { companionAutoAct } from '../companions.js';
 import { createCombatStats, recordPlayerAttack, recordPlayerDefend, recordAbilityUse, recordItemUse, recordPotionUse, recordDamageReceived as csRecordDamageReceived, recordFleeAttempt, recordWeaknessHit, recordCompanionAction, recordTurn, finalizeCombatStats, formatCombatStatsDisplay } from '../combat-stats-tracker.js';
 import { updateBountyProgress } from '../bounty-board.js';
+import { recordDamageDealt as recordDashboardDamageDealt } from '../statistics-dashboard.js';
 
 /**
  * Handles combat-related actions dispatched during 'player-turn'.
@@ -37,6 +38,9 @@ export function handleCombatAction(state, action) {
     if (next._hitWeakness) gs = recordWeaknessHitGame(gs);
     if (next._defeatedWhileBroken) gs = recordDefeatedWhileBroken(gs);
     applyCraftingMaterialDrops(next);
+    if (dmgDealt > 0) {
+      next.statistics = recordDashboardDamageDealt({ statistics: next.statistics }, dmgDealt).statistics;
+    }
 
     if (cs) {
       recordPlayerAttack(cs, dmgDealt);
