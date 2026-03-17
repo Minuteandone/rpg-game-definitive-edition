@@ -26,19 +26,37 @@ function addObstacle(grid, x, y, w, h) {
 function openEdge(grid, edge) {
   const midX = Math.floor(ROOM_WIDTH / 2);
   const midY = Math.floor(ROOM_HEIGHT / 2);
+  const setOpen = (row, col) => {
+    if (
+      row >= 0
+      && row < ROOM_HEIGHT
+      && col >= 0
+      && col < ROOM_WIDTH
+    ) {
+      grid[row][col] = 0;
+    }
+  };
 
   if (edge === 'north') {
-    grid[0][midX] = 0;
-    grid[1][midX] = 0;
+    for (let col = midX - 1; col <= midX + 1; col += 1) {
+      setOpen(0, col);
+      setOpen(1, col);
+    }
   } else if (edge === 'south') {
-    grid[ROOM_HEIGHT - 1][midX] = 0;
-    grid[ROOM_HEIGHT - 2][midX] = 0;
+    for (let col = midX - 1; col <= midX + 1; col += 1) {
+      setOpen(ROOM_HEIGHT - 1, col);
+      setOpen(ROOM_HEIGHT - 2, col);
+    }
   } else if (edge === 'west') {
-    grid[midY][0] = 0;
-    grid[midY][1] = 0;
+    for (let row = midY - 1; row <= midY + 1; row += 1) {
+      setOpen(row, 0);
+      setOpen(row, 1);
+    }
   } else if (edge === 'east') {
-    grid[midY][ROOM_WIDTH - 1] = 0;
-    grid[midY][ROOM_WIDTH - 2] = 0;
+    for (let row = midY - 1; row <= midY + 1; row += 1) {
+      setOpen(row, ROOM_WIDTH - 1);
+      setOpen(row, ROOM_WIDTH - 2);
+    }
   }
 }
 
@@ -234,6 +252,18 @@ export class WorldMap {
     if (directionKey === 'south') nextY = 0;
     if (directionKey === 'west') nextX = this.roomWidth - 1;
     if (directionKey === 'east') nextX = 0;
+
+    if (directionKey === 'north' || directionKey === 'south') {
+      const minX = Math.floor(this.roomWidth / 2) - 1;
+      const maxX = Math.floor(this.roomWidth / 2) + 1;
+      nextX = Math.max(minX, Math.min(maxX, nextX));
+    }
+
+    if (directionKey === 'west' || directionKey === 'east') {
+      const minY = Math.floor(this.roomHeight / 2) - 1;
+      const maxY = Math.floor(this.roomHeight / 2) + 1;
+      nextY = Math.max(minY, Math.min(maxY, nextY));
+    }
 
     // Clamp against obstacles on the edge tile; if blocked, stop at boundary.
     if (this._isBlocked(targetRoom, nextX, nextY)) {
