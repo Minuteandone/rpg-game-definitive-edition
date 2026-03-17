@@ -455,7 +455,7 @@ export function canAdvance(dungeonState) {
     return false;
   }
   const cleared = dungeonState.floorsCleared.includes(dungeonState.currentFloor);
-  return cleared || floorData.bossFloor;
+  return !floorData.bossFloor || cleared;
 }
 
 export function getScaledEnemy(enemy, floorNumber) {

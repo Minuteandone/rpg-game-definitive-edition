@@ -302,6 +302,13 @@ describe('canAdvance(state)', () => {
     assert.equal(result, false);
   });
 
+  test('returns true when stairs found on non-boss floor (no clearing needed)', () => {
+    const result = canAdvance(
+      makeState({ currentFloor: 2, stairsFound: true, floorsCleared: [] })
+    );
+    assert.equal(result, true);
+  });
+
   test('returns true when stairs found and floor cleared (non-boss)', () => {
     const result = canAdvance(
       makeState({ currentFloor: 2, stairsFound: true, floorsCleared: [2] })
@@ -309,8 +316,13 @@ describe('canAdvance(state)', () => {
     assert.equal(result, true);
   });
 
-  test('returns true when stairs found on boss floor even if not cleared', () => {
-    const result = canAdvance(makeState({ currentFloor: 3, stairsFound: true }));
+  test('returns false when stairs found on boss floor but not cleared', () => {
+    const result = canAdvance(makeState({ currentFloor: 3, stairsFound: true, floorsCleared: [] }));
+    assert.equal(result, false);
+  });
+
+  test('returns true when stairs found on boss floor and floor is cleared', () => {
+    const result = canAdvance(makeState({ currentFloor: 3, stairsFound: true, floorsCleared: [3] }));
     assert.equal(result, true);
   });
 });
