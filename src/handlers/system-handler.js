@@ -9,6 +9,20 @@ import { saveToSlot, loadFromSlot, getSaveSlots, deleteSaveSlot } from '../engin
 import { consumeAchievementNotifications } from '../achievements.js';
 import { DIFFICULTY_LEVELS } from '../difficulty.js';
 import { createArenaState } from '../arena-tournament-system.js';
+import { createBestiaryState } from '../bestiary.js';
+import { createBountyBoardState } from '../bounty-board.js';
+import { createCompanionState } from '../companions.js';
+import { createComboState } from '../combo-system.js';
+import { createReputationState } from '../faction-reputation-system.js';
+import { createGuildSystemState } from '../guild-system.js';
+import { createWorldState } from '../map.js';
+import { createMomentumState } from '../momentum.js';
+import { createNPCRelationshipManager, ensureNPCRelationshipManager } from '../npc-relationships.js';
+import { createEncounterState } from '../random-encounter-system.js';
+import { createTavernDiceState } from '../tavern-dice.js';
+import { createTutorialState } from '../tutorial.js';
+import { createWeatherState } from '../weather.js';
+import { createDailyChallengeState } from '../daily-challenge-system.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -116,7 +130,14 @@ export function handleSystemAction(state, action) {
       loaded = { ...loaded, rngSeed: Date.now() % 2147483647 };
     }
     if (loaded) {
-      return { ...loaded, log: [...(loaded.log ?? []), 'Save loaded.'] };
+      const migratedState = {
+        ...loaded,
+        rngSeed: loaded.rngSeed !== undefined ? loaded.rngSeed : Date.now() % 2147483647,
+        arenaState: loaded.arenaState !== undefined ? loaded.arenaState : createArenaState(),
+        npcRelationshipManager: ensureNPCRelationshipManager(loaded.npcRelationshipManager),
+        dailyChallengeState: loaded.dailyChallengeState !== undefined ? loaded.dailyChallengeState : createDailyChallengeState(),
+      };
+      return { ...migratedState, log: [...(migratedState.log ?? []), 'Save loaded.'] };
     }
     return pushLog(state, 'No save found.');
   }
@@ -198,8 +219,10 @@ export function handleSystemAction(state, action) {
     if (loaded) {
       const migratedState = {
         ...loaded,
-        arenaState: loaded.arenaState || createArenaState(),
-        rngSeed: loaded.rngSeed || (Date.now() % 2147483647),
+        rngSeed: loaded.rngSeed !== undefined ? loaded.rngSeed : Date.now() % 2147483647,
+        arenaState: loaded.arenaState !== undefined ? loaded.arenaState : createArenaState(),
+        npcRelationshipManager: ensureNPCRelationshipManager(loaded.npcRelationshipManager),
+        dailyChallengeState: loaded.dailyChallengeState !== undefined ? loaded.dailyChallengeState : createDailyChallengeState(),
       };
       return { ...migratedState, phase: 'exploration', log: [...(migratedState.log || []), 'Loaded from slot ' + (slotIndex + 1) + '.'] };
     }
