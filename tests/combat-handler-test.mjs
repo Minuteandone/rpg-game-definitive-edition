@@ -1,4 +1,5 @@
 import { handleCombatAction, handleEnemyTurnLogic } from '../src/handlers/combat-handler.js';
+import { createEmptyStatistics } from '../src/statistics-dashboard.js';
 import { createGameStats } from '../src/game-stats.js';
 import { createBattleSummary } from '../src/battle-summary.js';
 import { getBattleLogEntries } from '../src/combat-battle-log-integration.js';
@@ -93,6 +94,24 @@ console.log('--- Testing Combat Handler ---');
   assert(next !== null, 'PLAYER_POTION handled');
   assert(next.player.hp > 50, 'Player healed');
   assert(next.gameStats.itemsUsed === 1, "Item use recorded");
+}
+
+// Statistics dashboard combat mirror
+{
+  const statState = {
+    ...mockState,
+    statistics: createEmptyStatistics(),
+    player: { ...mockState.player, hp: 35, maxHp: 100, inventory: { potion: 1 } },
+    enemy: { ...mockState.enemy, hp: 30, maxHp: 30, def: 0 },
+  };
+
+  const attackNext = handleCombatAction(statState, { type: 'PLAYER_ATTACK' });
+  assert((attackNext.statistics?.combat?.totalDamageDealt ?? 0) > 0, 'Statistics dashboard records player damage dealt');
+  assert((attackNext.statistics?.combat?.totalHits ?? 0) > 0, 'Statistics dashboard records a landed hit');
+
+  const potionNext = handleCombatAction(statState, { type: 'PLAYER_POTION' });
+  assert((potionNext.statistics?.items?.potionsUsed ?? 0) === 1, 'Statistics dashboard records potion use');
+  assert((potionNext.statistics?.combat?.totalHealingReceived ?? 0) > 0, 'Statistics dashboard records received healing from potion');
 }
 
 // Test Wrong Phase

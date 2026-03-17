@@ -6,6 +6,12 @@ import { addItemToInventory } from '../items.js';
 import { trackAchievements } from '../achievements.js';
 import { companionAutoAct } from '../companions.js';
 import { createCombatStats, recordPlayerAttack, recordPlayerDefend, recordAbilityUse, recordItemUse, recordPotionUse, recordDamageReceived as csRecordDamageReceived, recordFleeAttempt, recordWeaknessHit, recordCompanionAction, recordTurn, finalizeCombatStats, formatCombatStatsDisplay } from '../combat-stats-tracker.js';
+import {
+  recordDamageDealt as recordDashboardDamageDealt,
+  recordDamageReceived as recordDashboardDamageReceived,
+  recordHealing as recordDashboardHealing,
+  recordConsumableUsed as recordDashboardConsumableUsed,
+} from '../statistics-dashboard.js';
 
 /**
  * Handles combat-related actions dispatched during 'player-turn'.
@@ -31,20 +37,24 @@ export function handleCombatAction(state, action) {
     const { playerDamage: dmgDealt } = extractTurnStats(logLen);
     
     let gs = next.gameStats || createGameStats();
-    if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
+    let nextWithStats = next;
+    if (dmgDealt > 0) {
+      gs = recordDamageDealt(gs, dmgDealt);
+      nextWithStats = recordDashboardDamageDealt(nextWithStats, dmgDealt);
+    }
     gs = recordTurnPlayed(gs);
     if (next._triggeredShieldBreak) gs = recordShieldBroken(gs);
     if (next._hitWeakness) gs = recordWeaknessHitGame(gs);
     if (next._defeatedWhileBroken) gs = recordDefeatedWhileBroken(gs);
-    applyCraftingMaterialDrops(next);
+    applyCraftingMaterialDrops(nextWithStats);
 
     if (cs) {
       recordPlayerAttack(cs, dmgDealt);
       recordTurn(cs, 'player');
     }
-    if (next._hitWeakness && cs) recordWeaknessHit(cs);
+    if (nextWithStats._hitWeakness && cs) recordWeaknessHit(cs);
     
-    return finalizeCombatState(next, { gameStats: gs, combatStats: cs });
+    return finalizeCombatState(nextWithStats, { gameStats: gs, combatStats: cs });
   }
 
   if (type === 'PLAYER_DEFEND') {
@@ -74,38 +84,51 @@ export function handleCombatAction(state, action) {
   if (type === 'PLAYER_POTION') {
     const logLen = getBattleLogEntries().length;
     const next = playerUsePotion(state);
-    const { playerHealing: healingDone } = extractTurnStats(logLen);
+    const { playerHealing: loggedHealingDone } = extractTurnStats(logLen);
+    const healingDone = Math.max(loggedHealingDone, Math.max(0, (next.player?.hp ?? 0) - (state.player?.hp ?? 0)));
     let gs = next.gameStats || createGameStats();
+    let nextWithStats = recordDashboardConsumableUsed(next, 'potion');
+    if (healingDone > 0) {
+      nextWithStats = recordDashboardHealing(nextWithStats, healingDone, true);
+    }
     gs = recordItemUsed(gs, 'potion');
     gs = recordTurnPlayed(gs);
-    applyCraftingMaterialDrops(next);
+    applyCraftingMaterialDrops(nextWithStats);
     if (cs) {
-      recordPotionUse(cs, Math.max(0, healingDone));
+      recordPotionUse(cs, healingDone);
       recordTurn(cs, 'player');
     }
-    return finalizeCombatState(next, { gameStats: gs, combatStats: cs });
+    return finalizeCombatState(nextWithStats, { gameStats: gs, combatStats: cs });
   }
 
   if (type === 'PLAYER_ABILITY') {
     const logLen = getBattleLogEntries().length;
     const next = playerUseAbility(state, action.abilityId);
-    const { playerDamage: dmgDealt, playerHealing: healingDone } = extractTurnStats(logLen);
+    const { playerDamage: dmgDealt, playerHealing: loggedHealingDone } = extractTurnStats(logLen);
+    const healingDone = Math.max(loggedHealingDone, Math.max(0, (next.player?.hp ?? 0) - (state.player?.hp ?? 0)));
     
     let gs = next.gameStats || createGameStats();
+    let nextWithStats = next;
     gs = recordAbilityUsed(gs, action.abilityId);
-    if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
+    if (dmgDealt > 0) {
+      gs = recordDamageDealt(gs, dmgDealt);
+      nextWithStats = recordDashboardDamageDealt(nextWithStats, dmgDealt);
+    }
     gs = recordTurnPlayed(gs);
     if (next._triggeredShieldBreak) gs = recordShieldBroken(gs);
     if (next._hitWeakness) gs = recordWeaknessHitGame(gs);
     if (next._defeatedWhileBroken) gs = recordDefeatedWhileBroken(gs);
-    applyCraftingMaterialDrops(next);
+    if (healingDone > 0) {
+      nextWithStats = recordDashboardHealing(nextWithStats, healingDone, true);
+    }
+    applyCraftingMaterialDrops(nextWithStats);
     if (cs) {
       recordAbilityUse(cs, action.abilityId, dmgDealt, healingDone);
       recordTurn(cs, 'player');
     }
-    if (next._hitWeakness && cs) recordWeaknessHit(cs);
+    if (nextWithStats._hitWeakness && cs) recordWeaknessHit(cs);
     
-    return finalizeCombatState(next, { gameStats: gs, combatStats: cs });
+    return finalizeCombatState(nextWithStats, { gameStats: gs, combatStats: cs });
   }
 
   if (type === 'PLAYER_OVERDRIVE') {
@@ -114,31 +137,40 @@ export function handleCombatAction(state, action) {
     const { playerDamage: dmgDealt } = extractTurnStats(logLen);
 
     let gs = next.gameStats || createGameStats();
-    if (dmgDealt > 0) gs = recordDamageDealt(gs, dmgDealt);
+    let nextWithStats = next;
+    if (dmgDealt > 0) {
+      gs = recordDamageDealt(gs, dmgDealt);
+      nextWithStats = recordDashboardDamageDealt(nextWithStats, dmgDealt);
+    }
     gs = recordTurnPlayed(gs);
-    applyCraftingMaterialDrops(next);
+    applyCraftingMaterialDrops(nextWithStats);
 
     if (cs) {
       recordAbilityUse(cs, 'overdrive', dmgDealt, 0);
       recordTurn(cs, 'player');
     }
 
-    return finalizeCombatState(next, { gameStats: gs, combatStats: cs });
+    return finalizeCombatState(nextWithStats, { gameStats: gs, combatStats: cs });
   }
 
   if (type === 'PLAYER_ITEM') {
     const logLen = getBattleLogEntries().length;
     const next = playerUseItem(state, action.itemId);
-    const { playerHealing: healingDone } = extractTurnStats(logLen);
+    const { playerHealing: loggedHealingDone } = extractTurnStats(logLen);
+    const healingDone = Math.max(loggedHealingDone, Math.max(0, (next.player?.hp ?? 0) - (state.player?.hp ?? 0)));
     let gs = next.gameStats || createGameStats();
+    let nextWithStats = next;
+    if (healingDone > 0) {
+      nextWithStats = recordDashboardHealing(nextWithStats, healingDone, true);
+    }
     gs = recordItemUsed(gs, action.itemId);
     gs = recordTurnPlayed(gs);
-    applyCraftingMaterialDrops(next);
+    applyCraftingMaterialDrops(nextWithStats);
     if (cs) {
       recordItemUse(cs, action.itemId, healingDone);
       recordTurn(cs, 'player');
     }
-    return finalizeCombatState(next, { gameStats: gs, combatStats: cs });
+    return finalizeCombatState(nextWithStats, { gameStats: gs, combatStats: cs });
   }
 
   return null;
@@ -169,6 +201,7 @@ export function handleEnemyTurnLogic(state) {
   
   if (dmgReceived > 0) {
     let withGs = { ...next, gameStats: recordDamageReceived(next.gameStats || createGameStats(), dmgReceived), combatStats: cs };
+    withGs = recordDashboardDamageReceived(withGs, dmgReceived);
     // Companions auto-act after enemy turn (if still in combat)
     if (withGs.phase === 'player-turn' || withGs.phase === 'enemy-turn') {
       const enemyHpBeforeCompanion = withGs.enemy?.hp ?? 0;

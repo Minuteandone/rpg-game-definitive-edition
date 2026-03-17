@@ -31,11 +31,37 @@ import { createGuild, addMember, removeMember, changeMemberRank, depositGold, wi
 import { renderGuildPanel, renderCreateGuildForm, renderGuildBrowser, renderGuildHud } from '../guild-system-ui.js';
 import { processMatchResult, createTournament, recordTournamentMatchResult, getTournamentRewards, resetSeason, generateOpponent } from '../arena-tournament-system.js';
 import { dismissSporeling } from '../sporeling-integration.js';
+import {
+  recordEnemyDefeated as recordDashboardEnemyDefeated,
+  recordGoldEarned as recordDashboardGoldEarned,
+  recordGoldSpent as recordDashboardGoldSpent,
+  recordHealing as recordDashboardHealing,
+  recordConsumableUsed as recordDashboardConsumableUsed,
+} from '../statistics-dashboard.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
   if (!room) return 'You stand in an unknown place.';
   return room.name || 'An unremarkable area.';
+}
+
+function getEnemyTier(enemy) {
+  if (!enemy) return 'normal';
+  if (enemy.isBoss) return 'boss';
+  if (enemy.isElite) return 'elite';
+  if (enemy.isMinion) return 'minion';
+  return 'normal';
+}
+
+function recordBattleRewardsInStatistics(state) {
+  let next = state;
+  if (state.enemy?.name) {
+    next = recordDashboardEnemyDefeated(next, state.enemy.name, getEnemyTier(state.enemy));
+  }
+  if ((state.goldGained ?? 0) > 0) {
+    next = recordDashboardGoldEarned(next, state.goldGained, 'combat');
+  }
+  return next;
 }
 
 export function handleUIAction(state, action) {
@@ -251,6 +277,7 @@ export function handleUIAction(state, action) {
         pendingLevelUps: undefined,
         gameStats: gs,
       };
+      next = recordBattleRewardsInStatistics(next);
       next = pushLog(next, isFinalBossCleared
         ? 'The Oblivion Lord is vanquished! Light returns to the realm!'
         : 'You continue exploring the dungeon.');
@@ -268,6 +295,7 @@ export function handleUIAction(state, action) {
       pendingLevelUps: undefined,
       gameStats: gs,
     };
+    next = recordBattleRewardsInStatistics(next);
     next = pushLog(next, 'You gather yourself and continue your journey.');
     next = pushLog(next, `${getRoomDescription(state.world)} Exits: ${exits.join(', ') || 'none'}.`);
     return next;
@@ -332,7 +360,7 @@ export function handleUIAction(state, action) {
 
   if (type === 'INN_REST') {
     if (state.player.gold >= 20) {
-      const next = {
+      let next = {
         ...state,
         player: {
           ...state.player,
@@ -341,6 +369,11 @@ export function handleUIAction(state, action) {
           mp: state.player.maxMp,
         },
       };
+      next = recordDashboardGoldSpent(next, 20, 'services');
+      const hpHealing = Math.max(0, (state.player.maxHp ?? 0) - (state.player.hp ?? 0));
+      const mpHealing = Math.max(0, (state.player.maxMp ?? 0) - (state.player.mp ?? 0));
+      if (hpHealing > 0) next = recordDashboardHealing(next, hpHealing, true);
+      if (mpHealing > 0) next = recordDashboardHealing(next, mpHealing, true);
       return pushLog(next, 'You rest at the inn and restore all HP and MP. (-20g)');
     }
     return pushLog(state, 'Not enough gold to rest.');
@@ -348,7 +381,7 @@ export function handleUIAction(state, action) {
 
   if (type === 'INN_FOOD') {
     if (state.player.gold >= 10) {
-      const next = {
+      let next = {
         ...state,
         player: {
           ...state.player,
@@ -356,6 +389,10 @@ export function handleUIAction(state, action) {
           hp: Math.min(state.player.maxHp, state.player.hp + 25),
         },
       };
+      next = recordDashboardGoldSpent(next, 10, 'services');
+      next = recordDashboardConsumableUsed(next, 'food');
+      const healing = Math.max(0, (next.player?.hp ?? 0) - (state.player?.hp ?? 0));
+      if (healing > 0) next = recordDashboardHealing(next, healing, true);
       return pushLog(next, 'You eat a hearty meal and restore 25 HP. (-10g)');
     }
     return pushLog(state, 'Not enough gold for food.');
@@ -393,14 +430,26 @@ export function handleUIAction(state, action) {
 
   if (type === 'BUY_ITEM') {
     if (state.phase !== 'shop' || !state.shopState) return null;
-    const result = buyItem(state.player, state.shopState, action.itemId, action.quantity || 1, state.worldEvent || null);
-    return { ...state, player: result.player, shopState: result.shopState };
+    const quantity = action.quantity || 1;
+    const result = buyItem(state.player, state.shopState, action.itemId, quantity, state.worldEvent || null);
+    let next = { ...state, player: result.player, shopState: result.shopState };
+    if (result.success) {
+      const spent = Math.max(0, (state.player?.gold ?? 0) - (result.player?.gold ?? 0));
+      if (spent > 0) next = recordDashboardGoldSpent(next, spent, 'items');
+    }
+    return next;
   }
 
   if (type === 'SELL_ITEM') {
     if (state.phase !== 'shop' || !state.shopState) return null;
-    const result = sellItem(state.player, state.shopState, action.itemId, action.quantity || 1);
-    return { ...state, player: result.player, shopState: result.shopState };
+    const quantity = action.quantity || 1;
+    const result = sellItem(state.player, state.shopState, action.itemId, quantity);
+    let next = { ...state, player: result.player, shopState: result.shopState };
+    if (result.success) {
+      const earned = Math.max(0, (result.player?.gold ?? 0) - (state.player?.gold ?? 0));
+      if (earned > 0) next = recordDashboardGoldEarned(next, earned, 'selling');
+    }
+    return next;
   }
 
   if (type === 'SHOP_SWITCH_TAB') {
@@ -921,6 +970,7 @@ export function handleUIAction(state, action) {
       pendingLevelUps: undefined,
       gameStats: gs,
     };
+    next = recordBattleRewardsInStatistics(next);
     const specName = action.specName || specId;
     next = pushLog(next, 'You have chosen the path of the ' + specName + '!');
     next = pushLog(next, 'New abilities and stat bonuses have been applied.');
