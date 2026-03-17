@@ -63,13 +63,13 @@ const ABILITIES = {
   'blizzard': {
     id: 'blizzard',
     name: 'Blizzard',
-    description: 'Unleash a freezing storm on all enemies.',
+    description: 'Unleash a freezing storm on all enemies. May freeze them.',
     mpCost: 10,
-    power: 1.2,
+    power: 1.8,
     healPower: 0,
     element: 'ice',
     targetType: 'all-enemies',
-    statusEffect: null,
+    statusEffect: { type: 'freeze', name: 'Freeze', duration: 1, power: 0 },
     class: 'mage',
   },
   'thunder-bolt': {

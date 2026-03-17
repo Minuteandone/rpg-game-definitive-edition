@@ -174,6 +174,12 @@ function processTurnStart(state, actorKey) {
     ...nextState,
     [actorKey]: { ...actor, hp, statusEffects: remainingEffects },
   };
+  if (actorKey === 'player') {
+    nextState = {
+      ...nextState,
+      potionCooldown: Math.max(0, (nextState.potionCooldown ?? 0) - 1),
+    };
+  }
 
   return applyVictoryDefeat(nextState);
 }
@@ -255,6 +261,7 @@ export function startNewEncounter(state, zoneLevel = 1) {
     enemy,
     phase: 'player-turn',
     turn: 1,
+    potionCooldown: 0,
     combatStats: null,
     combatStatsSummary: null,
     player: { ...state.player, defending: false, statusEffects: [] },
@@ -420,16 +427,22 @@ export function playerUsePotion(state) {
     return { ...state, phase: 'enemy-turn' };
   }
 
+  const potionCooldown = state.potionCooldown ?? 0;
+  if (potionCooldown > 0) {
+    return pushLog(state, `Potion is on cooldown (${potionCooldown} turns left)!`);
+  }
+
   const count = state.player.inventory.potion ?? 0;
   if (count <= 0) {
     return pushLog(state, `You fumble for a potion, but you're out.`);
   }
 
-  const heal = items.potion.heal;
+  const heal = Math.max(1, Math.floor(state.player.maxHp * 0.5));
   const hp = clamp(state.player.hp + heal, 0, state.player.maxHp);
   const actualHeal = hp - state.player.hp;
   state = {
     ...state,
+    potionCooldown: 3,
     player: {
       ...state.player,
       hp,
@@ -636,6 +649,16 @@ export function playerUseItem(state, itemId) {
     return pushLog(state, `You don't have any ${item.name}.`);
   }
 
+  const effect = item.effect || {};
+  const healAmount = effect.heal ?? item.heal;
+  const isHealingItem = healAmount !== undefined && healAmount !== null && healAmount > 0;
+  if (isHealingItem) {
+    const potionCooldown = state.potionCooldown ?? 0;
+    if (potionCooldown > 0) {
+      return pushLog(state, `Potion is on cooldown (${potionCooldown} turns left)!`);
+    }
+  }
+
   // Remove item from inventory
   const newInventory = removeItemFromInventory(inventory, itemId, 1);
   state = {
@@ -643,11 +666,8 @@ export function playerUseItem(state, itemId) {
     player: { ...state.player, inventory: newInventory, defending: false },
   };
 
-  const effect = item.effect || {};
-
   // Handle healing items (potion, hiPotion)
-  const healAmount = effect.heal ?? item.heal;
-  if (healAmount !== undefined && healAmount !== null && healAmount > 0) {
+  if (isHealingItem) {
     const oldHp = state.player.hp;
     const multipliedHeal = Math.ceil(healAmount * getHealMultiplier(state.worldEvent));
     const newHp = clamp(oldHp + multipliedHeal, 0, state.player.maxHp);
@@ -655,6 +675,7 @@ export function playerUseItem(state, itemId) {
     state = {
       ...state,
       player: { ...state.player, hp: newHp },
+      potionCooldown: 3,
     };
     state = pushLog(state, `You use ${item.name} and restore ${actualHeal} HP.`);
     logItemUsed(item.name, `Restored ${actualHeal} HP`);

@@ -29,6 +29,7 @@ const LOG_TYPES = {
   'companion':       { icon: '\u{1F91D}', cssClass: 'log-companion' },
   'item':            { icon: '\u{1F9EA}', cssClass: 'log-item' },
   'status-effect':   { icon: '\u26A1',    cssClass: 'log-status' },
+  'poison-damage':   { icon: '\u2620\uFE0F', cssClass: 'log-poison-damage' },
   'damage-dealt':    { icon: '\u2694\uFE0F', cssClass: 'log-damage-dealt' },
   'damage-received': { icon: '\u{1F4A5}', cssClass: 'log-damage-received' },
   'ability':         { icon: '\u2728',    cssClass: 'log-ability' },
@@ -99,6 +100,11 @@ export function classifyLogEntry(line) {
     return { type: 'item', ...LOG_TYPES['item'] };
   }
 
+  // Poison damage ticks / hits should be clearly high-danger coloring
+  if (/\bpoison\b.*\bdamage\b|\bdamage\b.*\bpoison\b/i.test(lower)) {
+    return { type: 'poison-damage', ...LOG_TYPES['poison-damage'] };
+  }
+
   // Status effects
   if (/\bpoison(ed)?\b|\bburn(ed|ing|s)?\b|\bstun(ned|s)?\b|\bfroz(en|e)\b|\bbleed(ing|s)?\b|\bstatus\b|\bweaken/i.test(lower)) {
     return { type: 'status-effect', ...LOG_TYPES['status-effect'] };
@@ -156,6 +162,7 @@ export function getLogStyles() {
   return `
     .log-damage-dealt { color: #4CAF50; }
     .log-damage-received { color: #f44336; }
+    .log-poison-damage { color: #FF5722; font-weight: 600; }
     .log-healing { color: #2196F3; }
     .log-status { color: #FF9800; }
     .log-shield { color: #9C27B0; }
