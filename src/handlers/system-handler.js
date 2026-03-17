@@ -111,7 +111,10 @@ export function handleSystemAction(state, action) {
   }
 
   if (type === 'LOAD') {
-    const loaded = loadFromLocalStorage();
+    let loaded = loadFromLocalStorage();
+    if (loaded && !loaded.rngSeed) {
+      loaded = { ...loaded, rngSeed: Date.now() % 2147483647 };
+    }
     if (loaded) {
       return { ...loaded, log: [...(loaded.log ?? []), 'Save loaded.'] };
     }
