@@ -211,7 +211,35 @@ describe('renderDungeonActions', () => {
     );
   });
 
-  test('shows boss and descend buttons on a boss floor when eligible', () => {
+  test(
+    'shows boss fight button on a boss floor when boss not yet defeated',
+    () => {
+      const bossFloor = DUNGEON_FLOORS.find((f) => f.bossFloor && f.id !== 10);
+      assert.ok(bossFloor, 'expected a non-final boss floor');
+
+      const state = makeBaseState({
+        phase: 'dungeon',
+        dungeonState: makeDungeonStateForFloor(bossFloor.id, {
+          inDungeon: true,
+          stairsFound: true,
+          floorsCleared: [],
+        }),
+      });
+
+      const html = renderDungeonActions(state);
+
+      assert.ok(html.includes('btnDungeonSearch'), 'Search button present');
+      assert.ok(html.includes('btnDungeonBoss'), 'Boss button present');
+      assert.ok(
+        !html.includes('btnDungeonAdvance'),
+        'no Descend button before boss is defeated',
+      );
+      assert.ok(html.includes('btnDungeonInventory'), 'Inventory button present');
+      assert.ok(html.includes('btnDungeonExit'), 'Exit button present');
+    },
+  );
+
+  test('shows descend button on a boss floor after boss is defeated', () => {
     const bossFloor = DUNGEON_FLOORS.find((f) => f.bossFloor && f.id !== 10);
     assert.ok(bossFloor, 'expected a non-final boss floor');
 
@@ -220,17 +248,17 @@ describe('renderDungeonActions', () => {
       dungeonState: makeDungeonStateForFloor(bossFloor.id, {
         inDungeon: true,
         stairsFound: true,
-        floorsCleared: [],
+        floorsCleared: [bossFloor.id],
       }),
     });
 
     const html = renderDungeonActions(state);
 
     assert.ok(html.includes('btnDungeonSearch'), 'Search button present');
-    assert.ok(html.includes('btnDungeonBoss'), 'Boss button present');
+    assert.ok(!html.includes('btnDungeonBoss'), 'no Boss button after defeat');
     assert.ok(
       html.includes('btnDungeonAdvance'),
-      'Descend button present when canAdvance and not last floor',
+      'Descend button present after boss is defeated',
     );
     assert.ok(html.includes('btnDungeonInventory'), 'Inventory button present');
     assert.ok(html.includes('btnDungeonExit'), 'Exit button present');
