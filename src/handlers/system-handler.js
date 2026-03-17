@@ -199,6 +199,7 @@ export function handleSystemAction(state, action) {
       const migratedState = {
         ...loaded,
         arenaState: loaded.arenaState || createArenaState(),
+        rngSeed: loaded.rngSeed || (Date.now() % 2147483647),
       };
       return { ...migratedState, phase: 'exploration', log: [...(migratedState.log || []), 'Loaded from slot ' + (slotIndex + 1) + '.'] };
     }
