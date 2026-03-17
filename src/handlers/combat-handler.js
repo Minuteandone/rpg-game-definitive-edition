@@ -5,6 +5,7 @@ import { addItemToInventory } from '../items.js';
 import * as achievements from '../achievements.js';
 import { companionAutoAct } from '../companions.js';
 import { createCombatStats, recordPlayerAttack, recordPlayerDefend, recordAbilityUse, recordItemUse, recordPotionUse, recordDamageReceived as csRecordDamageReceived, recordFleeAttempt, recordWeaknessHit, recordCompanionAction, recordTurn, finalizeCombatStats, formatCombatStatsDisplay } from '../combat-stats-tracker.js';
+import { updateBountyProgress } from '../bounty-board.js';
 
 /**
  * Handles combat-related actions dispatched during 'player-turn'.
@@ -237,7 +238,11 @@ function finalizeCombatState(next, overrides = {}) {
     );
     combined.combatStatsSummary = formatCombatStatsDisplay(combined.combatStats);
   }
-  return achievements.trackAchievements(combined);
+  let withBounty = combined;
+  if (combined.phase === 'victory' && combined.enemy) {
+    withBounty = updateBountyProgress(combined, 'ENEMY_DEFEATED', combined.enemy.displayName ?? combined.enemy.name);
+  }
+  return achievements.trackAchievements(withBounty);
 }
 
 function applyCraftingMaterialDrops(state) {
