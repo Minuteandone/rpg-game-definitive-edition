@@ -677,68 +677,6 @@ export function getNextPlayerMatch(tournament) {
 }
 
 /**
- * Finds the next NPC-only (non-player) pending match in a single/double elimination bracket
- * @param {Object} tournament - Tournament instance
- * @returns {Object|null} Next NPC-only match or null
- */
-function findNextNPCOnlyMatch(tournament) {
-  const bracket = tournament.bracket;
-  const rounds = bracket.type === TOURNAMENT_TYPE.DOUBLE_ELIMINATION
-    ? bracket.winners.rounds
-    : bracket.rounds;
-
-  if (!rounds) return null;
-
-  for (const round of rounds) {
-    for (const match of round) {
-      if (match.status === 'pending') {
-        const hasPlayer =
-          (match.participant1 && match.participant1.isPlayer) ||
-          (match.participant2 && match.participant2.isPlayer);
-        if (!hasPlayer && match.participant1 && match.participant2) {
-          return match;
-        }
-      }
-    }
-  }
-  return null;
-}
-
-/**
- * Simulates all pending NPC-only matches in the tournament until the player's
- * next match is ready (status 'pending') or the tournament is complete.
- * This ensures the player never sees "No matches available" while still active.
- * @param {Object} tournament - Tournament instance
- * @returns {Object} Updated tournament after all NPC matches are resolved
- */
-export function simulateNPCMatches(tournament) {
-  let current = tournament;
-  // Safety limit: no more iterations than total matches (prevents infinite loops)
-  const maxIterations = 64;
-  let iterations = 0;
-
-  while (iterations < maxIterations) {
-    iterations++;
-    // If tournament is complete or player is out, stop
-    if (current.status === 'completed' || current.playerStatus !== 'active') break;
-
-    // If there's already a player match pending, we're done
-    const playerMatch = getNextPlayerMatch(current);
-    if (playerMatch) break;
-
-    // Find the next NPC-only match to simulate
-    const npcMatch = findNextNPCOnlyMatch(current);
-    if (!npcMatch) break; // No more NPC matches to simulate
-
-    // Simulate the NPC match with equal skill (50/50)
-    const winner = Math.random() < 0.5 ? npcMatch.participant1 : npcMatch.participant2;
-    current = recordTournamentMatchResult(current, npcMatch.id, winner.id);
-  }
-
-  return current;
-}
-
-/**
  * Finds next match in bracket tournament
  * @param {Object} bracket - Tournament bracket
  * @param {Object} tournament - Tournament instance
@@ -796,6 +734,66 @@ function findNextGauntletMatch(bracket) {
 }
 
 /**
+ * Simulates all pending NPC-only matches until the player's next match is ready
+ * or the tournament ends. This prevents "No matches available" after player wins.
+ * @param {Object} tournament - Tournament instance
+ * @returns {Object} Updated tournament with NPC matches resolved
+ */
+export function simulateNPCMatches(tournament) {
+  if (tournament.bracket.type !== TOURNAMENT_TYPE.SINGLE_ELIMINATION &&
+      tournament.bracket.type !== TOURNAMENT_TYPE.DOUBLE_ELIMINATION) {
+    return tournament;
+  }
+
+  let updated = tournament;
+  let safetyCounter = 0;
+  const maxIterations = 100; // Prevent infinite loops
+
+  while (safetyCounter < maxIterations) {
+    safetyCounter++;
+
+    // Find the next pending NPC-only match
+    const npcMatch = findNextNPCOnlyMatch(updated.bracket);
+    if (!npcMatch) break;
+
+    // Simulate the match - randomly pick a winner
+    const winner = Math.random() < 0.5 ? npcMatch.participant1 : npcMatch.participant2;
+    updated = recordSingleEliminationResult(updated, npcMatch.id, winner.id);
+
+    // Check if tournament is complete
+    if (updated.status === 'completed') break;
+
+    // Check if player's next match is now ready
+    const playerMatch = findNextBracketMatch(updated.bracket, updated);
+    if (playerMatch) break;
+  }
+
+  return updated;
+}
+
+/**
+ * Finds the next pending match where neither participant is the player
+ * @param {Object} bracket - Tournament bracket
+ * @returns {Object|null} Next NPC-only match or null
+ */
+function findNextNPCOnlyMatch(bracket) {
+  const rounds = bracket.type === TOURNAMENT_TYPE.DOUBLE_ELIMINATION
+    ? bracket.winners.rounds
+    : bracket.rounds;
+
+  for (const round of rounds) {
+    for (const match of round) {
+      if (match.status === 'pending' &&
+          match.participant1 && match.participant2 &&
+          !match.participant1.isPlayer && !match.participant2.isPlayer) {
+        return match;
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * Records tournament match result
  * @param {Object} tournament - Tournament instance
  * @param {string} matchId - Match ID
@@ -804,13 +802,16 @@ function findNextGauntletMatch(bracket) {
  */
 export function recordTournamentMatchResult(tournament, matchId, winnerId) {
   const bracket = tournament.bracket;
+  let result;
 
   switch (bracket.type) {
     case TOURNAMENT_TYPE.SINGLE_ELIMINATION:
-      return recordSingleEliminationResult(tournament, matchId, winnerId);
+      result = recordSingleEliminationResult(tournament, matchId, winnerId);
+      break;
 
     case TOURNAMENT_TYPE.DOUBLE_ELIMINATION:
-      return recordDoubleEliminationResult(tournament, matchId, winnerId);
+      result = recordDoubleEliminationResult(tournament, matchId, winnerId);
+      break;
 
     case TOURNAMENT_TYPE.ROUND_ROBIN:
       return recordRoundRobinResult(tournament, matchId, winnerId);
@@ -821,6 +822,14 @@ export function recordTournamentMatchResult(tournament, matchId, winnerId) {
     default:
       return tournament;
   }
+
+  // After recording bracket tournament results, auto-simulate NPC matches
+  // so the player immediately gets their next match ready
+  if (result.status !== 'completed' && result.playerStatus === 'active') {
+    result = simulateNPCMatches(result);
+  }
+
+  return result;
 }
 
 /**

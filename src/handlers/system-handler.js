@@ -8,6 +8,7 @@ import { getCurrentRoom } from '../map.js';
 import { saveToSlot, loadFromSlot, getSaveSlots, deleteSaveSlot } from '../engine.js';
 import { consumeAchievementNotifications } from '../achievements.js';
 import { DIFFICULTY_LEVELS } from '../difficulty.js';
+import { createArenaState } from '../arena-tournament-system.js';
 
 function getRoomDescription(worldState) {
   const room = getCurrentRoom(worldState);
@@ -192,7 +193,11 @@ export function handleSystemAction(state, action) {
     const slotIndex = action.slotIndex;
     const loaded = loadFromSlot(slotIndex);
     if (loaded) {
-      return { ...loaded, phase: 'exploration', log: [...(loaded.log || []), 'Loaded from slot ' + (slotIndex + 1) + '.'] };
+      const migratedState = {
+        ...loaded,
+        arenaState: loaded.arenaState || createArenaState(),
+      };
+      return { ...migratedState, phase: 'exploration', log: [...(migratedState.log || []), 'Loaded from slot ' + (slotIndex + 1) + '.'] };
     }
     return { ...state, phase: 'save-slots', saveSlotMode: 'load', saveSlots: getSaveSlots(), log: [...(state.log || []), 'Load failed! Slot may be empty.'] };
   }
