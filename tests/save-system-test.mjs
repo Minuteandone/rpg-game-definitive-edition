@@ -114,6 +114,18 @@ describe('createSaveMetadata', () => {
     assert.strictEqual(meta.playerName, 'Unknown Hero');
     assert.strictEqual(meta.turn, 0);
   });
+
+  it('should derive location from world coordinates in live game state', () => {
+    const state = {
+      player: { name: 'TestHero', level: 1, classId: 'warrior', gold: 20 },
+      world: { roomRow: 1, roomCol: 1, x: 4, y: 4 },
+      turn: 1,
+      version: 1
+    };
+    const meta = saveSystem.createSaveMetadata(state);
+
+    assert.strictEqual(meta.location, 'Village Square');
+  });
 });
 
 describe('formatSaveTimestamp', () => {

@@ -3,6 +3,18 @@ import {
   getCompanionBonuses,
 } from './companions.js';
 import { NPCS } from './data/npcs.js';
+import { getCurrentRoomId, ROOM_NAMES } from './minimap.js';
+
+// Map NPC building locations to their room-grid IDs
+const LOCATION_TO_ROOM = {
+  village_square: 'center',
+  rusty_anchor_inn: 'center',
+  blacksmith_shop: 'center',
+  healer_hut: 'center',
+  barracks: 'center',
+  alchemy_shop: 'center',
+  mage_tower: 'ne',
+};
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -18,6 +30,7 @@ const getClassIcon = (className) => {
 };
 
 const formatStatus = (isAlive) => (isAlive ? 'Alive' : 'Fallen');
+const formatLocationId = (id) => id.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
 const renderHpBar = (current, max) => {
   const percent = getBarPercent(current, max);
@@ -69,7 +82,7 @@ const renderRecruitedCompanion = (companion) => {
   `;
 };
 
-const renderAvailableCompanion = (npc) => {
+const renderAvailableCompanion = (npc, playerRoom) => {
   const stats = npc.stats || {};
 
   return `
@@ -78,10 +91,21 @@ const renderAvailableCompanion = (npc) => {
         <div class="companion-name">${npc.name}</div>
         <div class="companion-meta">${stats.class} • Lv ${stats.level}</div>
       </div>
-      <div class="companion-location">Location: ${npc.location || 'Unknown'}</div>
-      <div class="companion-actions">
-        <button class="companion-button" data-action="RECRUIT_COMPANION" data-companion-id="${npc.id}">Recruit</button>
-      </div>
+      <div class="companion-location">Location: ${npc.location ? formatLocationId(npc.location) : 'Unknown'}${(() => {
+        const roomId = LOCATION_TO_ROOM[npc.location];
+        const roomName = roomId ? ROOM_NAMES[roomId] : null;
+        return roomName ? ` (${roomName})` : '';
+      })()}</div>
+      <div class="companion-actions">${(() => {
+        const companionRoom = LOCATION_TO_ROOM[npc.location] || null;
+        const isHere = !playerRoom || !companionRoom || playerRoom === companionRoom;
+        if (isHere) {
+          return `<button class="companion-button" data-action="RECRUIT_COMPANION" data-companion-id="${npc.id}">Recruit</button>`;
+        } else {
+          const roomName = ROOM_NAMES[companionRoom] || 'their location';
+          return `<button class="companion-button" disabled title="Travel to ${roomName} to recruit">Not Here</button>`;
+        }
+      })()}</div>
     </div>
   `;
 };
@@ -118,7 +142,7 @@ export const renderCompanionPanel = (state) => {
         <div class="companion-list">
           ${
             availableNpcCompanions.length
-              ? availableNpcCompanions.map(renderAvailableCompanion).join('')
+              ? availableNpcCompanions.map((npc) => renderAvailableCompanion(npc, getCurrentRoomId(state?.world))).join('')
               : '<div class="companion-empty">No companions available right now.</div>'
           }
         </div>

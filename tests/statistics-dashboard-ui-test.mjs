@@ -20,7 +20,7 @@ import {
   getSectionVisibility,
   SECTION_ICONS
 } from '../src/statistics-dashboard-ui.js';
-import { initializeStatistics, recordDamageDealt, recordEnemyDefeated, recordGoldEarned } from '../src/statistics-dashboard.js';
+import { initializeStatistics, recordDamageDealt, recordEnemyDefeated, recordGoldEarned, createEmptyStatistics } from '../src/statistics-dashboard.js';
 
 // Helper to create a mock state with statistics
 function createMockState() {
@@ -510,6 +510,16 @@ describe('Statistics Dashboard UI', () => {
     });
   });
   
+
+  describe('combat summary key compatibility', () => {
+    it('renders zeroes instead of undefined for fresh combat stats', () => {
+      const html = renderStatisticsDashboard({ statistics: createEmptyStatistics() });
+      assert.ok(!html.includes('undefined'));
+      assert.ok(html.includes('Damage Dealt'));
+      assert.ok(html.includes('>0<'));
+    });
+  });
+
   describe('Integration with statistics-dashboard', () => {
     it('should work with freshly initialized state', () => {
       const state = createMockState();

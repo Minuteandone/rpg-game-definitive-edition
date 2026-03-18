@@ -50,6 +50,34 @@ describe('Encounter Handler', () => {
       assert.strictEqual(result.phase, 'exploration');
     });
 
+    it('opens Bram shop for general merchant encounters', () => {
+      const state = {
+        ...baseState,
+        phase: 'random-encounter',
+        previousPhase: 'exploration',
+        currentEncounter: { id: 'wandering-trader', type: 'merchant', shopType: 'general' },
+      };
+      const result = handleEncounterAction(state, { type: 'RESOLVE_ENCOUNTER', payload: { outcome: 'shop' } });
+      assert.strictEqual(result.phase, 'shop');
+      assert.strictEqual(result.shopState.npcId, 'merchant_bram');
+      assert.strictEqual(result.shopState.previousPhase, 'exploration');
+      assert.strictEqual(result.currentEncounter, null);
+    });
+
+    it('opens hermit sage shop for rare merchant encounters', () => {
+      const state = {
+        ...baseState,
+        phase: 'random-encounter',
+        previousPhase: 'exploration',
+        currentEncounter: { id: 'rare-collector', type: 'merchant', shopType: 'rare' },
+      };
+      const result = handleEncounterAction(state, { type: 'RESOLVE_ENCOUNTER', payload: { outcome: 'shop' } });
+      assert.strictEqual(result.phase, 'shop');
+      assert.strictEqual(result.shopState.npcId, 'hermit_sage');
+      assert.strictEqual(result.shopState.previousPhase, 'exploration');
+      assert.strictEqual(result.currentEncounter, null);
+    });
+
     it('handles ADD_ENCOUNTER_MODIFIER action', () => {
       const modifier = {
         id: 'test-mod',

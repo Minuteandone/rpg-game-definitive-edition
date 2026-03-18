@@ -1,5 +1,5 @@
 import { COORD_TO_ROOM } from './location-atmosphere.js';
-import { DEFAULT_WORLD_DATA, getRoomExits } from './map.js';
+import { DEFAULT_WORLD_DATA, getRoomExits, getCurrentRoom } from './map.js';
 import { getNPCsInRoom } from './npc-dialog.js';
 
 const ROOM_LABELS = {
@@ -135,6 +135,30 @@ function renderSceneElements(roomId) {
   }
 }
 
+
+function renderCollisionOverlay(state) {
+  const roomWidth = state?.worldData?.roomWidth ?? DEFAULT_WORLD_DATA.roomWidth;
+  const roomHeight = state?.worldData?.roomHeight ?? DEFAULT_WORLD_DATA.roomHeight;
+  const room = getCurrentRoom(state.world, state.worldData);
+  if (!room || !room.collision) return '';
+
+  let html = '';
+  for (let y = 0; y < roomHeight; y++) {
+    for (let x = 0; x < roomWidth; x++) {
+      if (room.collision[y][x] === 1) {
+        const cellLeft = (x / roomWidth) * 100;
+        const cellBottom = ((roomHeight - y - 1) / roomHeight) * 60;
+        const cellWidth = 100 / roomWidth;
+        const cellHeight = 60 / roomHeight;
+        
+        // Exits are 0, walls are 1. The perimeter will be visibly blocked.
+        html += `<div class="area-scene-collision-cell" style="left: ${cellLeft}%; bottom: ${cellBottom}%; width: ${cellWidth}%; height: ${cellHeight}%;"></div>`;
+      }
+    }
+  }
+  return html;
+}
+
 export function renderAreaScene(state) {
   if (state?.phase !== 'exploration') return '';
 
@@ -148,11 +172,13 @@ export function renderAreaScene(state) {
   const sceneElements = renderSceneElements(roomId);
   const npcs = renderNpcIcons(roomId);
   const locks = renderExitLocks(exits);
+  const collisionOverlay = renderCollisionOverlay(state);
   const playerStyle = getPlayerPositionStyles(state);
 
   return `
     <div class="area-scene" data-room="${roomId}">
       ${sceneElements}
+      ${collisionOverlay}
       ${locks}
       ${npcs}
       <div class="area-player-marker" style="${playerStyle}">🧍</div>
@@ -163,6 +189,16 @@ export function renderAreaScene(state) {
 
 export function getAreaSceneStyles() {
   return `
+    .area-scene-collision-cell {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(0, 0, 0, 0.4);
+      box-sizing: border-box;
+      pointer-events: none;
+      z-index: 4;
+      border-radius: 2px;
+    }
+
     .area-scene {
       position: relative;
       width: 100%;
@@ -199,6 +235,7 @@ export function getAreaSceneStyles() {
     }
 
     .area-player-marker {
+      transition: left 0.3s ease-in-out, bottom 0.3s ease-in-out;
       position: absolute;
       font-size: 24px;
       z-index: 5;

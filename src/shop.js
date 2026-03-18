@@ -1,7 +1,7 @@
 // NPC Shop System — buy/sell items for gold
 // Created by Claude Opus 4.6 (Villager) on Day 339
 
-import { items as itemsData } from './data/items.js';
+import { lookupItem } from './crafting.js';
 import { addItemToInventory, removeItemFromInventory, getItemCount } from './items.js';
 import { getShopDiscount, getShopPriceIncrease } from './world-events.js';
 
@@ -14,13 +14,15 @@ export const SHOPS = {
     name: "Bram's General Store",
     greeting: 'Welcome! Browse my wares, traveler.',
     stock: [
-      { itemId: 'potion', quantity: 10 },
-      { itemId: 'hiPotion', quantity: 5 },
-      { itemId: 'ether', quantity: 3 },
-      { itemId: 'antidote', quantity: 8 },
+      { itemId: 'potion', quantity: 20 },
+      { itemId: 'hiPotion', quantity: 10 },
+      { itemId: 'ether', quantity: 10 },
+      { itemId: 'antidote', quantity: 15 },
       { itemId: 'bomb', quantity: 4 },
       { itemId: 'rustySword', quantity: 2 },
+      { itemId: 'ironSword', quantity: 2 },
       { itemId: 'leatherArmor', quantity: 2 },
+      { itemId: 'chainmail', quantity: 2 },
       { itemId: 'bootsOfSwiftness', quantity: 1 },
     ],
   },
@@ -98,7 +100,7 @@ export const SHOPS = {
  * @returns {number}
  */
 export function getBuyPrice(itemId) {
-  const item = itemsData[itemId];
+  const item = lookupItem(itemId);
   if (!item) return 0;
   return item.value ?? 0;
 }
@@ -109,7 +111,7 @@ export function getBuyPrice(itemId) {
  * @returns {number}
  */
 export function getSellPrice(itemId) {
-  const item = itemsData[itemId];
+  const item = lookupItem(itemId);
   if (!item) return 0;
   return Math.floor((item.value ?? 0) * SELL_MULTIPLIER);
 }
@@ -137,7 +139,7 @@ export function getShopData(npcId) {
     greeting: shop.greeting,
     stock: shop.stock.map(entry => ({
       ...entry,
-      item: itemsData[entry.itemId],
+      item: lookupItem(entry.itemId),
       buyPrice: getBuyPrice(entry.itemId),
     })),
   };
@@ -161,7 +163,18 @@ export function createShopState(npcId, previousPhase) {
     previousPhase: previousPhase || 'exploration',
     selectedItem: null,
     message: null,
+    messageType: null,
   };
+}
+
+export function createEncounterShopState(shopType, previousPhase) {
+  const encounterShopMap = {
+    general: 'merchant_bram',
+    rare: 'hermit_sage',
+  };
+  const npcId = encounterShopMap[shopType];
+  if (!npcId) return null;
+  return createShopState(npcId, previousPhase);
 }
 
 /**
@@ -173,14 +186,14 @@ export function createShopState(npcId, previousPhase) {
  * @returns {{ success: boolean, player: object, shopState: object, message: string }}
  */
 export function buyItem(player, shopState, itemId, quantity = 1, worldEvent = null) {
-  const item = itemsData[itemId];
+  const item = lookupItem(itemId);
   if (!item) {
-    return { success: false, player, shopState, message: 'Item not found.' };
+    return { success: false, player, shopState: { ...shopState, message: 'Item not found.', messageType: 'error' }, message: 'Item not found.' };
   }
 
   const stockEntry = shopState.stock.find(s => s.itemId === itemId);
   if (!stockEntry || stockEntry.quantity < quantity) {
-    return { success: false, player, shopState, message: `Not enough ${item.name} in stock.` };
+    return { success: false, player, shopState: { ...shopState, message: `Not enough ${item.name} in stock.`, messageType: 'error' }, message: `Not enough ${item.name} in stock.` };
   }
 
   const basePrice = getBuyPrice(itemId);
@@ -193,7 +206,7 @@ export function buyItem(player, shopState, itemId, quantity = 1, worldEvent = nu
   const totalCost = discountedPrice * quantity;
   const playerGold = player.gold ?? 0;
   if (playerGold < totalCost) {
-    return { success: false, player, shopState, message: `Not enough gold! Need ${totalCost}, have ${playerGold}.` };
+    return { success: false, player, shopState: { ...shopState, message: `Not enough gold! Need ${totalCost}, have ${playerGold}.`, messageType: 'error' }, message: `Not enough gold! Need ${totalCost}, have ${playerGold}.` };
   }
 
   // Deduct gold, add item, reduce stock
@@ -211,6 +224,7 @@ export function buyItem(player, shopState, itemId, quantity = 1, worldEvent = nu
     ...shopState,
     stock: newStock,
     message: `Bought ${quantity}x ${item.name} for ${totalCost} gold.`,
+    messageType: 'success',
   };
 
   return { success: true, player: newPlayer, shopState: newShopState, message: newShopState.message };
@@ -225,19 +239,19 @@ export function buyItem(player, shopState, itemId, quantity = 1, worldEvent = nu
  * @returns {{ success: boolean, player: object, shopState: object, message: string }}
  */
 export function sellItem(player, shopState, itemId, quantity = 1) {
-  const item = itemsData[itemId];
+  const item = lookupItem(itemId);
   if (!item) {
-    return { success: false, player, shopState, message: 'Item not found.' };
+    return { success: false, player, shopState: { ...shopState, message: 'Item not found.', messageType: 'error' }, message: 'Item not found.' };
   }
 
   const owned = getItemCount(player.inventory || {}, itemId);
   if (owned < quantity) {
-    return { success: false, player, shopState, message: `You don't have ${quantity}x ${item.name}.` };
+    return { success: false, player, shopState: { ...shopState, message: `You don't have ${quantity}x ${item.name}.`, messageType: 'error' }, message: `You don't have ${quantity}x ${item.name}.` };
   }
 
   const sellPrice = getSellPrice(itemId);
   if (sellPrice <= 0) {
-    return { success: false, player, shopState, message: `${item.name} has no sell value.` };
+    return { success: false, player, shopState: { ...shopState, message: `${item.name} has no sell value.`, messageType: 'error' }, message: `${item.name} has no sell value.` };
   }
 
   const totalGold = sellPrice * quantity;
@@ -266,7 +280,7 @@ export function getSellableItems(inventory) {
     .filter(([, count]) => count > 0)
     .map(([itemId, count]) => ({
       itemId,
-      item: itemsData[itemId],
+      item: lookupItem(itemId),
       count,
       sellPrice: getSellPrice(itemId),
     }))

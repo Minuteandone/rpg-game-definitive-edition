@@ -6,6 +6,7 @@ import { createGameStats, recordBattleFled } from '../game-stats.js';
 import { initVisitedRooms } from '../minimap.js';
 import { getCurrentRoom } from '../map.js';
 import { saveToSlot, loadFromSlot, getSaveSlots, deleteSaveSlot } from '../engine.js';
+import { createSaveMetadata } from '../save-system.js';
 import { consumeAchievementNotifications } from '../achievements.js';
 import { DIFFICULTY_LEVELS } from '../difficulty.js';
 import { createArenaState } from '../arena-tournament-system.js';
@@ -49,6 +50,7 @@ export function handleSystemAction(state, action) {
 
     return {
       ...baseState,
+      tutorialState: state.tutorialState || baseState.tutorialState,
       phase: 'background-select',
       log: [
         `You have chosen the path of the ${className}.`,
@@ -79,6 +81,7 @@ export function handleSystemAction(state, action) {
     applyFlat('atk');
     applyFlat('def');
     applyFlat('spd');
+    applyFlat('int');
     applyFlat('gold');
 
     if (bonuses.inventory && typeof bonuses.inventory === 'object') {
@@ -161,6 +164,7 @@ export function handleSystemAction(state, action) {
     return {
       phase: 'class-select',
       log: ['The adventure ends... but another awaits. Select your class.'],
+      tutorialState: state.tutorialState,
     };
   }
 
@@ -194,6 +198,7 @@ export function handleSystemAction(state, action) {
     return {
       phase: 'class-select',
       log: ['The hero\'s legend is complete. A new adventure begins.'],
+      tutorialState: state.tutorialState,
     };
   }
 
@@ -207,7 +212,13 @@ export function handleSystemAction(state, action) {
 
   if (type === 'SAVE_TO_SLOT') {
     const slotIndex = action.slotIndex;
-    const success = saveToSlot(state, slotIndex);
+    const metadata = createSaveMetadata(state);
+    const payload = {
+      ...state,
+      saveMetadata: metadata,
+      location: metadata.location,
+    };
+    const success = saveToSlot(payload, slotIndex);
     if (success) {
       return { ...state, phase: 'save-slots', saveSlotMode: 'save', saveSlots: getSaveSlots(), log: [...(state.log || []), 'Saved to slot ' + (slotIndex + 1) + '.'] };
     }

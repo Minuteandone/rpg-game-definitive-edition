@@ -139,6 +139,16 @@ describe('Shop System', () => {
       const ss = createShopState('merchant_bram');
       assert.equal(ss.previousPhase, 'exploration');
     });
+
+    it('failed buy updates shop state with an error message', () => {
+      const player = makePlayer({ gold: 0, inventory: {} });
+      const shopState = createShopState('merchant_bram', 'exploration');
+      const result = buyItem(player, shopState, 'potion');
+
+      assert.equal(result.success, false);
+      assert.equal(result.shopState.message, 'Not enough gold! Need 15, have 0.');
+      assert.equal(result.shopState.messageType, 'error');
+    });
   });
 
   describe('buyItem', () => {

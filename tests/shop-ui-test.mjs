@@ -64,6 +64,14 @@ describe('Shop UI', () => {
       assert.ok(html.includes('Bought 1x Healing Potion!'));
     });
 
+    it('renders error shop messages with error styling', () => {
+      const shopState = { ...createShopState('merchant_bram', 'exploration'), message: 'Not enough gold!', messageType: 'error' };
+      const player = makePlayer({ gold: 0 });
+      const html = renderShopPanel(shopState, player);
+      assert.ok(html.includes('shop-message-error'));
+      assert.ok(html.includes('Not enough gold!'));
+    });
+
     it('should mark unaffordable items with disabled class', () => {
       const shopState = createShopState('merchant_bram', 'exploration');
       const player = makePlayer({ gold: 0 });

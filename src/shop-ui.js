@@ -34,8 +34,9 @@ export function renderShopPanel(shopState, player, worldEvent = null) {
     itemsHtml = renderSellTab(player);
   }
 
+  const messageClass = shopState.messageType === 'error' ? 'shop-message shop-message-error' : 'shop-message';
   const messageHtml = shopState.message
-    ? `<div class="shop-message">${esc(shopState.message)}</div>`
+    ? `<div class="${messageClass}">${esc(shopState.message)}</div>`
     : '';
 
   return `
@@ -94,7 +95,7 @@ function renderBuyTab(shopState, playerGold, worldEvent) {
         <div class="shop-item-footer">
           <span class="shop-item-stock">Stock: ${entry.quantity}</span>
           <span class="shop-item-price">💰 ${discountedPrice}${discountLabel}</span>
-          <button class="shop-buy-btn" data-item-id="${esc(entry.itemId)}" ${canAfford ? '' : 'disabled'}>Buy</button>
+          <button class="shop-buy-btn ${canAfford ? '' : 'shop-buy-btn-disabled'}" data-item-id="${esc(entry.itemId)}">Buy</button>
         </div>
       </div>
     `;
@@ -193,6 +194,7 @@ export function getShopStyles() {
     .shop-gold { font-size: 1.1em; margin-bottom: 8px; padding: 4px 8px; background: #1a1a2e; border-radius: 4px; display: inline-block; }
     .shop-message { padding: 6px 10px; margin: 6px 0; border-radius: 4px; background: #1e3a2e; color: #8f8; font-size: 0.95em; }
     .shop-tabs { display: flex; gap: 4px; margin: 10px 0 8px; }
+    .shop-message-error { background: #4a1f24; color: #ff9aa2; border: 1px solid #7a2e39; }
     .shop-tab { padding: 6px 18px; border: 1px solid #555; background: #222; color: #ccc; cursor: pointer; border-radius: 4px 4px 0 0; font-size: 0.95em; }
     .shop-tab.active { background: #336; color: #fff; border-bottom-color: #336; font-weight: bold; }
     .shop-items { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; }
@@ -208,8 +210,8 @@ export function getShopStyles() {
     .shop-item-stock { font-size: 0.85em; color: #aaa; }
     .shop-item-price { font-size: 0.9em; color: #fc0; }
     .shop-buy-btn, .shop-sell-btn { padding: 3px 12px; border-radius: 4px; border: 1px solid #555; background: #2a4a2a; color: #8f8; cursor: pointer; font-size: 0.85em; }
-    .shop-buy-btn:hover:not(:disabled), .shop-sell-btn:hover { background: #3a6a3a; }
-    .shop-buy-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .shop-buy-btn:hover, .shop-sell-btn:hover { background: #3a6a3a; }
+    .shop-buy-btn-disabled { opacity: 0.4; }
     .shop-empty { color: #888; font-style: italic; padding: 20px 0; text-align: center; }
   `;
 }

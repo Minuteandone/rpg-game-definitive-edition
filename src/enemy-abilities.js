@@ -7,6 +7,7 @@
 
 import { getAbility } from './combat/abilities.js';
 import { calculateDamage } from './combat/damage-calc.js';
+import { logDamageReceived } from './combat-battle-log-integration.js';
 import { clamp, pushLog } from './state.js';
 import { nextRng, getPlayerStatusResist } from './combat.js';
 
@@ -161,6 +162,7 @@ export function executeEnemyAbility(state, abilityId) {
       nextState,
       `${(nextState.enemy.displayName ?? nextState.enemy.name)} uses ${ability.name} for ${damage} damage!${suffix}`
     );
+    logDamageReceived(damage, (nextState.enemy.displayName ?? nextState.enemy.name));
   } else if (ability.targetType === 'self') {
     if (effect) {
       nextState = {

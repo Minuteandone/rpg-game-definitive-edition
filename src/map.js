@@ -69,42 +69,42 @@ function buildRoom(id, name, obstacles = []) {
 const defaultRooms = [
   [
     buildRoom('nw', 'Northwest Grove', [
-      { x: 4, y: 3, w: 3, h: 2 },
-      { x: 9, y: 5, w: 2, h: 2 },
+      { x: 2, y: 1, w: 1, h: 1 },
+      { x: 4, y: 2, w: 1, h: 1 },
     ]),
     buildRoom('n', 'Northern Path', [
-      { x: 7, y: 2, w: 2, h: 6 },
+      { x: 3, y: 1, w: 1, h: 3 },
     ]),
     buildRoom('ne', 'Northeast Ridge', [
-      { x: 3, y: 6, w: 4, h: 3 },
-      { x: 10, y: 2, w: 3, h: 2 },
+      { x: 1, y: 3, w: 2, h: 1 },
+      { x: 5, y: 1, w: 1, h: 1 },
     ]),
   ],
   [
     buildRoom('w', 'Western Crossing', [
-      { x: 6, y: 4, w: 2, h: 3 },
-      { x: 10, y: 8, w: 3, h: 2 },
+      { x: 3, y: 2, w: 1, h: 1 },
+      { x: 5, y: 4, w: 1, h: 1 },
     ]),
     buildRoom('center', 'Village Square', [
-      { x: 4, y: 4, w: 2, h: 2 },
-      { x: 9, y: 4, w: 2, h: 2 },
-      { x: 6, y: 7, w: 4, h: 2 },
+      { x: 2, y: 2, w: 1, h: 1 },
+      { x: 5, y: 2, w: 1, h: 1 },
+      { x: 2, y: 4, w: 1, h: 1 },
     ]),
     buildRoom('e', 'Eastern Fields', [
-      { x: 11, y: 3, w: 2, h: 5 },
-      { x: 3, y: 8, w: 2, h: 2 },
+      { x: 5, y: 1, w: 1, h: 2 },
+      { x: 1, y: 4, w: 1, h: 1 },
     ]),
   ],
   [
     buildRoom('sw', 'Southwest Marsh', [
-      { x: 5, y: 6, w: 3, h: 2 },
+      { x: 2, y: 3, w: 1, h: 1 },
     ]),
     buildRoom('s', 'Southern Road', [
-      { x: 7, y: 2, w: 2, h: 7 },
+      { x: 3, y: 1, w: 1, h: 3 },
     ]),
     buildRoom('se', 'Southeast Dock', [
-      { x: 4, y: 3, w: 2, h: 2 },
-      { x: 9, y: 6, w: 3, h: 3 },
+      { x: 2, y: 1, w: 1, h: 1 },
+      { x: 4, y: 3, w: 1, h: 1 },
     ]),
   ],
 ];
@@ -149,12 +149,30 @@ export class WorldMap {
     const x = Math.max(0, Math.min(this.roomWidth - 1, nextState.x));
     const y = Math.max(0, Math.min(this.roomHeight - 1, nextState.y));
     if (!room || this._isBlocked(room, x, y)) {
-      return {
-        roomRow: DEFAULT_WORLD_DATA.startRoom.row,
-        roomCol: DEFAULT_WORLD_DATA.startRoom.col,
-        x: DEFAULT_WORLD_DATA.startPosition.x,
-        y: DEFAULT_WORLD_DATA.startPosition.y,
-      };
+      // Fallback to default start position
+      const fallbackRow = DEFAULT_WORLD_DATA.startRoom.row;
+      const fallbackCol = DEFAULT_WORLD_DATA.startRoom.col;
+      const fallbackRoom = this.rooms[fallbackRow]?.[fallbackCol];
+      let fx = DEFAULT_WORLD_DATA.startPosition.x;
+      let fy = DEFAULT_WORLD_DATA.startPosition.y;
+      // If default start is also blocked, search for an open tile nearby
+      if (fallbackRoom && this._isBlocked(fallbackRoom, fx, fy)) {
+        let found = false;
+        for (let radius = 1; radius < Math.max(this.roomWidth, this.roomHeight) && !found; radius++) {
+          for (let dy = -radius; dy <= radius && !found; dy++) {
+            for (let dx = -radius; dx <= radius && !found; dx++) {
+              const cx = fx + dx;
+              const cy = fy + dy;
+              if (cx >= 0 && cx < this.roomWidth && cy >= 0 && cy < this.roomHeight && !this._isBlocked(fallbackRoom, cx, cy)) {
+                fx = cx;
+                fy = cy;
+                found = true;
+              }
+            }
+          }
+        }
+      }
+      return { roomRow: fallbackRow, roomCol: fallbackCol, x: fx, y: fy };
     }
     return { ...nextState, x, y };
   }
@@ -208,13 +226,25 @@ export class WorldMap {
       return { moved: false, blocked: 'edge', transitioned: false, state: this.snapshot() };
     }
 
-    // Move to the opposite edge of the next room.
+    // Move to one tile inside the opposite edge of the next room.
     let nextX = this.state.x;
     let nextY = this.state.y;
-    if (directionKey === 'north') nextY = this.roomHeight - 1;
-    if (directionKey === 'south') nextY = 0;
-    if (directionKey === 'west') nextX = this.roomWidth - 1;
-    if (directionKey === 'east') nextX = 0;
+    if (directionKey === 'north') nextY = this.roomHeight - 2;
+    if (directionKey === 'south') nextY = 1;
+    if (directionKey === 'west') nextX = this.roomWidth - 2;
+    if (directionKey === 'east') nextX = 1;
+
+    if (directionKey === 'north' || directionKey === 'south') {
+      const minX = Math.floor(this.roomWidth / 2) - 1;
+      const maxX = Math.floor(this.roomWidth / 2) + 1;
+      nextX = Math.max(minX, Math.min(maxX, nextX));
+    }
+
+    if (directionKey === 'west' || directionKey === 'east') {
+      const minY = Math.floor(this.roomHeight / 2) - 1;
+      const maxY = Math.floor(this.roomHeight / 2) + 1;
+      nextY = Math.max(minY, Math.min(maxY, nextY));
+    }
 
     // Clamp against obstacles on the edge tile; if blocked, stop at boundary.
     if (this._isBlocked(targetRoom, nextX, nextY)) {

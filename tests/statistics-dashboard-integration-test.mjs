@@ -206,6 +206,64 @@ describe('Statistics Dashboard Integration', () => {
 });
 
 describe('UI Handler Integration', () => {
+
+  it('battle continuation should populate statistics dashboard combat and economy totals', async () => {
+    const { handleUIAction } = await import('../src/handlers/ui-handler.js');
+    const state = {
+      phase: 'battle-summary',
+      previousPhase: 'exploration',
+      player: { hp: 30, maxHp: 30, defending: false },
+      enemy: { name: 'Grumpy Slime', isBoss: false },
+      world: { currentRow: 1, currentCol: 1, roomRow: 1, roomCol: 1 },
+      battleSummary: {},
+      log: [],
+      goldGained: 7,
+      xpGained: 12,
+    };
+
+    const result = handleUIAction(state, { type: 'CONTINUE_AFTER_BATTLE' });
+
+    assert.strictEqual(result.statistics.enemies.totalDefeated, 1);
+    assert.strictEqual(result.statistics.enemies.defeatedByType['Grumpy Slime'], 1);
+    assert.strictEqual(result.statistics.economy.goldEarned, 7);
+    assert.strictEqual(result.statistics.economy.goldFromCombat, 7);
+  });
+
+  it('inn and shop actions should update statistics dashboard economy counters', async () => {
+    const { handleUIAction } = await import('../src/handlers/ui-handler.js');
+
+    const innState = {
+      phase: 'dialog',
+      player: { gold: 25, hp: 10, maxHp: 30, mp: 2, maxMp: 12 },
+      log: [],
+    };
+    const innResult = handleUIAction(innState, { type: 'INN_REST' });
+    assert.strictEqual(innResult.statistics.economy.goldSpent, 20);
+    assert.strictEqual(innResult.statistics.economy.goldSpentOnServices, 20);
+    assert.ok(innResult.statistics.combat.totalHealingReceived > 0);
+
+    const shopState = {
+      phase: 'shop',
+      player: { gold: 100, inventory: { potion: 1 } },
+      shopState: {
+        npcId: 'merchant_bram',
+        stock: [{ itemId: 'potion', quantity: 10 }],
+        tab: 'buy',
+        previousPhase: 'exploration',
+      },
+    };
+    const buyResult = handleUIAction(shopState, { type: 'BUY_ITEM', itemId: 'potion' });
+    assert.ok(buyResult.statistics.economy.goldSpent > 0);
+    assert.ok(buyResult.statistics.economy.goldSpentOnItems > 0);
+
+    const sellResult = handleUIAction({
+      ...buyResult,
+      phase: 'shop',
+      shopState: { ...buyResult.shopState, tab: 'sell' },
+    }, { type: 'SELL_ITEM', itemId: 'potion' });
+    assert.ok(sellResult.statistics.economy.goldEarned > 0);
+    assert.ok(sellResult.statistics.economy.goldFromSelling > 0);
+  });
   it('should handle OPEN_STATISTICS_DASHBOARD action', async () => {
     const { handleUIAction } = await import('../src/handlers/ui-handler.js');
     const state = { phase: 'exploration' };

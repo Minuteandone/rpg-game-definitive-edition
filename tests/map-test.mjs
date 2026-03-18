@@ -117,7 +117,7 @@ console.log('\n--- Room transitions ---');
   assert(res.worldState.roomRow === 0, 'Room row decremented when moving north');
   assert(res.worldState.roomCol === 1, 'Room col unchanged when moving north');
   assert(res.worldState.x === MID_X, 'X preserved across transition');
-  assert(res.worldState.y === ROOM_H - 1, 'Y set to opposite edge on transition');
+  assert(res.worldState.y === ROOM_H - 2, 'Y set to opposite edge on transition');
   assert(res.room !== null && typeof res.room.name === 'string', 'movePlayer returns current room object');
 
   // Edge of world: attempt to go north again from top row should fail.

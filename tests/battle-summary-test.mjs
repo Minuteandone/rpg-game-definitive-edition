@@ -59,6 +59,30 @@ test('extracts enemy name from state.enemy.name', () => {
   assertEqual(summary.enemyName, 'Forest Wolf');
 });
 
+test('prefers enemy displayName and falls back to name in create+format pipeline', () => {
+  const withDisplayName = createBattleSummary({
+    xpGained: 0,
+    goldGained: 0,
+    enemy: { name: 'Slime', displayName: 'Wicked Slime from Beyond' },
+    lootedItems: [],
+    pendingLevelUps: []
+  });
+  const withDisplayNameFmt = formatBattleSummary(withDisplayName);
+  assertEqual(withDisplayName.enemyName, 'Wicked Slime from Beyond');
+  assertEqual(withDisplayNameFmt.enemyLine, 'Defeated: Wicked Slime from Beyond');
+
+  const withNameOnly = createBattleSummary({
+    xpGained: 0,
+    goldGained: 0,
+    enemy: { name: 'Slime' },
+    lootedItems: [],
+    pendingLevelUps: []
+  });
+  const withNameOnlyFmt = formatBattleSummary(withNameOnly);
+  assertEqual(withNameOnly.enemyName, 'Slime');
+  assertEqual(withNameOnlyFmt.enemyLine, 'Defeated: Slime');
+});
+
 test('defaults to "Unknown Enemy" when enemy is missing', () => {
   const summary = createBattleSummary({ xpGained: 0, goldGained: 0, lootedItems: [], pendingLevelUps: [] });
   assertEqual(summary.enemyName, 'Unknown Enemy');

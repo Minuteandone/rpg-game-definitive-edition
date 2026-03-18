@@ -107,6 +107,7 @@ export function initialStateWithClass(classId, characterName = '', difficulty = 
       atk: character.stats.atk,
       def: character.stats.def,
       spd: character.stats.spd,
+      int: character.stats.int,
       classId,
       abilities: classDef.abilities,
       level: 1,

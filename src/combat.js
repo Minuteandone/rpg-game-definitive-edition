@@ -125,6 +125,8 @@ function processTurnStart(state, actorKey) {
   const actor = state[actorKey];
   if (!actor) return state;
 
+  logTurnStart(state.turn, actorKey === 'player');
+
   let nextState = state;
   const actorName = actorKey === 'player' ? 'You' : (state.enemy.displayName ?? state.enemy.name);
   const actorPossessive = actorKey === 'player' ? 'Your' : `${(state.enemy.displayName ?? state.enemy.name)}'s`;
@@ -147,12 +149,22 @@ function processTurnStart(state, actorKey) {
       if (damage > 0) {
         hp = clamp(hp - damage, 0, actor.maxHp);
         const source = effect.type === 'poison' ? 'poison' : 'burn';
+        if (actorKey === 'player') {
+          logDamageReceived(damage, source);
+        } else {
+          logDamageDealt(damage, 'status');
+        }
         nextState = pushLog(nextState, `${actorName} ${verb} ${damage} ${source} damage.`);
       }
     } else if (effect.type === 'bleed') {
       const damage = Math.max(0, effect.power ?? 0);
       if (damage > 0) {
         hp = clamp(hp - damage, 0, actor.maxHp);
+        if (actorKey === 'player') {
+          logDamageReceived(damage, 'bleed');
+        } else {
+          logDamageDealt(damage, 'status');
+        }
         nextState = pushLog(nextState, `${actorName} ${verb} ${damage} bleed damage.`);
       }
     } else if (effect.type === 'regen') {
@@ -172,12 +184,25 @@ function processTurnStart(state, actorKey) {
     ...nextState,
     [actorKey]: { ...actor, hp, statusEffects: remainingEffects },
   };
+  if (actorKey === 'player') {
+    nextState = {
+      ...nextState,
+      potionCooldown: Math.max(0, (nextState.potionCooldown ?? 0) - 1),
+    };
+  }
 
   return applyVictoryDefeat(nextState);
 }
 
 function applyVictoryDefeat(state) {
   if (state.enemy.hp <= 0) {
+    if (state.isArenaMatch) {
+      return {
+        ...state,
+        phase: 'arena',
+        isArenaMatch: false
+      };
+    }
     const difficulty = state.difficulty ?? DEFAULT_DIFFICULTY;
     const xpGained = applyDifficultyToXpReward(state.enemy.xpReward ?? 0, difficulty);
     const baseGold = applyDifficultyToGoldReward(state.enemy.goldReward ?? 0, difficulty);
@@ -221,6 +246,14 @@ function applyVictoryDefeat(state) {
     state = autoReviveCompanionsAfterCombat(state);
   }
   if (state.player.hp <= 0) {
+    if (state.isArenaMatch) {
+      return {
+        ...state,
+        phase: 'arena',
+        isArenaMatch: false,
+        player: { ...state.player, hp: 1 } // prevent actual death
+      };
+    }
     state = { ...state, phase: 'defeat' };
     logDefeat();
     state = pushLog(state, `Defeat... You collapse.`);
@@ -253,6 +286,9 @@ export function startNewEncounter(state, zoneLevel = 1) {
     enemy,
     phase: 'player-turn',
     turn: 1,
+    potionCooldown: 0,
+    combatStats: null,
+    combatStatsSummary: null,
     player: { ...state.player, defending: false, statusEffects: [] },
     momentumState: state.momentumState ? createMomentumState() : undefined,
     intentState: initIntentState(),
@@ -423,15 +459,22 @@ export function playerUsePotion(state) {
     return { ...state, phase: 'enemy-turn' };
   }
 
+  const potionCooldown = state.potionCooldown ?? 0;
+  if (potionCooldown > 0) {
+    return pushLog(state, `Potion is on cooldown (${potionCooldown} turns left)!`);
+  }
+
   const count = state.player.inventory.potion ?? 0;
   if (count <= 0) {
     return pushLog(state, `You fumble for a potion, but you're out.`);
   }
 
-  const heal = items.potion.heal;
+  const heal = Math.max(1, Math.floor(state.player.maxHp * 0.5));
   const hp = clamp(state.player.hp + heal, 0, state.player.maxHp);
+  const actualHeal = hp - state.player.hp;
   state = {
     ...state,
+    potionCooldown: 3,
     player: {
       ...state.player,
       hp,
@@ -440,7 +483,9 @@ export function playerUsePotion(state) {
     },
   };
 
-  state = pushLog(state, `You drink a potion and heal ${hp - (state.player.hp)} HP.`);
+  state = pushLog(state, `You drink a potion and heal ${actualHeal} HP.`);
+  logItemUsed('potion', `Restored ${actualHeal} HP`);
+  logHealing(actualHeal, 'potion');
   if (state.comboState) {
     state = { ...state, comboState: resetCombo(state.comboState) };
   }
@@ -637,6 +682,16 @@ export function playerUseItem(state, itemId) {
     return pushLog(state, `You don't have any ${item.name}.`);
   }
 
+  const effect = item.effect || {};
+  const healAmount = effect.heal ?? item.heal;
+  const isHealingItem = healAmount !== undefined && healAmount !== null && healAmount > 0;
+  if (isHealingItem) {
+    const potionCooldown = state.potionCooldown ?? 0;
+    if (potionCooldown > 0) {
+      return pushLog(state, `Potion is on cooldown (${potionCooldown} turns left)!`);
+    }
+  }
+
   // Remove item from inventory
   const newInventory = removeItemFromInventory(inventory, itemId, 1);
   state = {
@@ -644,11 +699,8 @@ export function playerUseItem(state, itemId) {
     player: { ...state.player, inventory: newInventory, defending: false },
   };
 
-  const effect = item.effect || {};
-
   // Handle healing items (potion, hiPotion)
-  const healAmount = effect.heal ?? item.heal;
-  if (healAmount !== undefined && healAmount !== null && healAmount > 0) {
+  if (isHealingItem) {
     const oldHp = state.player.hp;
     const multipliedHeal = Math.ceil(healAmount * getHealMultiplier(state.worldEvent));
     const newHp = clamp(oldHp + multipliedHeal, 0, state.player.maxHp);
@@ -656,9 +708,11 @@ export function playerUseItem(state, itemId) {
     state = {
       ...state,
       player: { ...state.player, hp: newHp },
+      potionCooldown: 3,
     };
     state = pushLog(state, `You use ${item.name} and restore ${actualHeal} HP.`);
     logItemUsed(item.name, `Restored ${actualHeal} HP`);
+    logHealing(actualHeal, item.name);
   }
 
   // Handle mana restoration (ether)

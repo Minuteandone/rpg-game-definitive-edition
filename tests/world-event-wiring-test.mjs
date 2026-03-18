@@ -120,6 +120,27 @@ describe('World event wiring', () => {
     assert.equal(actual, expected);
   });
 
+  it('dismisses an active world event from combat-phase UI actions', () => {
+    const state = {
+      phase: 'player-turn',
+      player: makePlayer(),
+      enemy: makeEnemy(),
+      log: [],
+      worldEvent: {
+        name: 'Golden Age',
+        description: 'Gold drops are tripled.',
+        effect: { type: 'gold_multiplier', value: 3 },
+        movesRemaining: 5,
+        totalMoves: 5,
+      },
+    };
+
+    const next = handleUIAction(state, { type: 'DISMISS_WORLD_EVENT' });
+    assert.ok(next);
+    assert.equal(next.worldEvent, null);
+    assert.equal(next.log.at(-1), 'You dismiss the world event notification.');
+  });
+
   it('Shop UI displays discounted price when worldEvent is provided', () => {
     const shopState = makeShopState();
     const player = makePlayer({ gold: 999 });

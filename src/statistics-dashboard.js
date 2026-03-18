@@ -539,6 +539,13 @@ export function getStatisticsSummary(state) {
   
   return {
     combat: {
+      totalDamageDealt: stats.combat.totalDamageDealt,
+      totalDamageReceived: stats.combat.totalDamageReceived,
+      totalHealingDone: stats.combat.totalHealingDone,
+      totalHits: stats.combat.totalHits,
+      totalMisses: stats.combat.totalMisses,
+      totalCriticalHits: stats.combat.totalCriticalHits,
+      highestSingleHit: stats.combat.highestSingleHit,
       damageDealt: stats.combat.totalDamageDealt,
       damageReceived: stats.combat.totalDamageReceived,
       damageRatio: stats.combat.totalDamageReceived > 0 

@@ -106,7 +106,7 @@ const DIALOG_LINES = {
     'Should you face great danger, remember: courage is the heart of every hero.',
   ],
   inn_1: [
-    'A room costs 10 gold per night. Our stew is the best in the realm!',
+    'A room costs 20 gold per night. Our stew is the best in the realm!',
     'Many adventurers have passed through here. Not all returned...',
   ],
   scout_1: [
@@ -394,6 +394,15 @@ function getDialogProgress(dialogState) {
   };
 }
 
+
+function isLastDialogLine(dialogState) {
+  if (dialogState.done) return true;
+  if (!dialogState.lines || dialogState.lines.length === 0) return true;
+  const isLastLine = dialogState.lineIndex + 1 >= dialogState.lines.length;
+  const isLastSection = dialogState.dialogIndex + 1 >= dialogState.dialogIds.length;
+  return isLastLine && isLastSection;
+}
+
 export {
   ROOM_NPCS,
   DIALOG_LINES,
@@ -405,4 +414,5 @@ export {
   advanceDialog,
   getCurrentDialogLine,
   getDialogProgress,
+  isLastDialogLine,
 };

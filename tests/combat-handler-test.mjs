@@ -1,5 +1,8 @@
 import { handleCombatAction, handleEnemyTurnLogic } from '../src/handlers/combat-handler.js';
+import { createEmptyStatistics } from '../src/statistics-dashboard.js';
 import { createGameStats } from '../src/game-stats.js';
+import { createBattleSummary } from '../src/battle-summary.js';
+import { getBattleLogEntries } from '../src/combat-battle-log-integration.js';
 
 let passed = 0;
 let failed = 0;
@@ -35,6 +38,49 @@ console.log('--- Testing Combat Handler ---');
   assert(next.gameStats.turnsPlayed > 0, 'Turn played recorded');
 }
 
+
+// Test PLAYER_ABILITY victory records max single hit from ability battle-log damage
+{
+  const abilityVictoryState = {
+    ...mockState,
+    player: {
+      ...mockState.player,
+      hp: 55,
+      maxHp: 55,
+      mp: 10,
+      abilities: ['power-strike'],
+      classId: 'warrior',
+      inventory: { potion: 1 },
+    },
+    enemy: {
+      ...mockState.enemy,
+      name: 'Slime',
+      displayName: 'Glorious Slime of the Depths',
+      hp: 5,
+      maxHp: 5,
+      def: 0,
+    },
+    log: [],
+    gameStats: createGameStats(),
+    rngSeed: 12345,
+  };
+
+  const prevBattleLogLen = getBattleLogEntries().length;
+  const next = handleCombatAction(abilityVictoryState, { type: 'PLAYER_ABILITY', abilityId: 'power-strike' });
+  const newEntries = getBattleLogEntries().slice(prevBattleLogLen);
+  const abilityEntry = newEntries.find((entry) => entry.type === 'ability');
+  const summary = createBattleSummary(next);
+  const performanceRows = summary.combatStatsDisplay.sections.find((s) => s.type === 'stats' && s.title === 'Performance')?.rows ?? [];
+  const actionRows = summary.combatStatsDisplay.sections.find((s) => s.type === 'stats' && s.title === 'Actions')?.rows ?? [];
+  const maxSingleHit = performanceRows.find((r) => r.label === 'Max Single Hit')?.value;
+  const attacks = actionRows.find((r) => r.label === 'Attacks')?.value;
+
+  assert(next.phase === 'victory', 'PLAYER_ABILITY can produce victory');
+  assert(abilityEntry?.details?.source === 'player', 'Ability battle-log entries are marked as player-sourced');
+  assert(maxSingleHit && maxSingleHit !== 'N/A', 'Ability-only victory records a max single hit');
+  assert(attacks === '1', 'Offensive ability victory counts as one attack in summary');
+}
+
 // Test PLAYER_DEFEND
 {
   const next = handleCombatAction(mockState, { type: 'PLAYER_DEFEND' });
@@ -48,6 +94,24 @@ console.log('--- Testing Combat Handler ---');
   assert(next !== null, 'PLAYER_POTION handled');
   assert(next.player.hp > 50, 'Player healed');
   assert(next.gameStats.itemsUsed === 1, "Item use recorded");
+}
+
+// Statistics dashboard combat mirror
+{
+  const statState = {
+    ...mockState,
+    statistics: createEmptyStatistics(),
+    player: { ...mockState.player, hp: 35, maxHp: 100, inventory: { potion: 1 } },
+    enemy: { ...mockState.enemy, hp: 30, maxHp: 30, def: 0 },
+  };
+
+  const attackNext = handleCombatAction(statState, { type: 'PLAYER_ATTACK' });
+  assert((attackNext.statistics?.combat?.totalDamageDealt ?? 0) > 0, 'Statistics dashboard records player damage dealt');
+  assert((attackNext.statistics?.combat?.totalHits ?? 0) > 0, 'Statistics dashboard records a landed hit');
+
+  const potionNext = handleCombatAction(statState, { type: 'PLAYER_POTION' });
+  assert((potionNext.statistics?.items?.potionsUsed ?? 0) === 1, 'Statistics dashboard records potion use');
+  assert((potionNext.statistics?.combat?.totalHealingReceived ?? 0) > 0, 'Statistics dashboard records received healing from potion');
 }
 
 // Test Wrong Phase

@@ -201,8 +201,16 @@ function isValidSlot(slotIndex) {
 }
 
 function resolveLocation(state) {
+  const explicitCurrentRoom = state?.currentRoom ?? state?.world?.currentRoom ?? state?.map?.currentRoom;
+  if (typeof explicitCurrentRoom === 'string' && explicitCurrentRoom) {
+    return explicitCurrentRoom;
+  }
+  if (explicitCurrentRoom?.name) {
+    return explicitCurrentRoom.name;
+  }
+
   try {
-    const room = getCurrentRoom(state?.world);
+    const room = getCurrentRoom(state?.map ?? state?.world ?? state?.worldState);
     return room?.name ?? room?.id ?? 'Unknown Location';
   } catch {
     return 'Unknown Location';

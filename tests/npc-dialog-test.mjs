@@ -50,6 +50,10 @@ describe('ROOM_NPCS', () => {
 });
 
 describe('DIALOG_LINES', () => {
+  it('keeps Innkeeper Mira room price aligned with the live service cost', () => {
+    assert.match(DIALOG_LINES.inn_1[0], /20 gold per night/);
+  });
+
   it('has at least 13 dialog entries', () => {
     assert.ok(Object.keys(DIALOG_LINES).length >= 13);
   });

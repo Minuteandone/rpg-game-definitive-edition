@@ -1,4 +1,4 @@
-import { formatSaveTimestamp, exportSaveToJSON, importSaveFromJSON, renameSave, AUTOSAVE_SLOT } from './save-system.js';
+import { formatSaveTimestamp, exportSaveToJSON, importSaveFromJSON, renameSave, AUTOSAVE_SLOT, createSaveMetadata } from './save-system.js';
 import { getSaveSlots, deleteSaveSlot, loadFromSlot, saveToSlot, on } from './engine.js';
 
 /**
@@ -128,7 +128,12 @@ export function handleSlotAction(action, slotIndex) {
       alert('Current game state is unavailable to save.');
       return;
     }
-    const payload = { ...currentState };
+    const metadata = createSaveMetadata(currentState);
+    const payload = {
+      ...currentState,
+      saveMetadata: metadata,
+      location: metadata.location,
+    };
     if (name.trim()) {
       payload.customName = name.trim();
     }

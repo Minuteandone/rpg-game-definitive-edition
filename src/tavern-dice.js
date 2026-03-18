@@ -102,6 +102,9 @@ export function cashOutTavernDice(state) {
 
   const houseCut = Math.floor(finalPot * 0.05);
   const winnings = finalPot - houseCut;
+  const payoutMessage = houseCut > 0
+    ? `Cashed out! House took ${houseCut}g. You received ${winnings}g.`
+    : `Cashed out! You received ${winnings}g.`;
 
   return {
     ...state,
@@ -115,7 +118,7 @@ export function cashOutTavernDice(state) {
       currentRoll: null,
       streak: 0,
       wager: 0,
-      message: `Cashed out! House took ${houseCut}g. You received ${winnings}g.`,
+      message: payoutMessage,
     }
   };
 }
