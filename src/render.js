@@ -64,6 +64,7 @@ import { createRewardsState, renderRewardsHtml, getRewardsStyles } from './comba
 import { renderStatsDashboardPhase, renderStatsDashboardActions, attachStatsDashboardHandlers, initStatsDashboard, getStatsDashboardIntegrationStyles } from './statistics-dashboard-integration.js';
 import { renderEncounterPopup, getEncounterStyles } from './random-encounter-system-ui.js';
 import { renderDefeatScreen, renderDefeatActions, getDefeatScreenStyles } from './defeat-screen-ui.js';
+import { lookupItem } from './crafting.js';
 let _victoryAnimStartTime = 0;
 
 /** Track previous log for floating text diff */
